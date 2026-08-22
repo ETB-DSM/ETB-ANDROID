@@ -9,6 +9,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.presentation.destination.DestinationRegViewModel
 import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
@@ -17,17 +19,17 @@ import com.aicane.app.ui.theme.*
 @Composable
 fun DestinationRegScreen(
     onBack: () -> Unit,
-    onSaved: () -> Unit,
     prefilledName: String = "",
     prefilledAddress: String = "",
     prefilledLat: Double = 0.0,
     prefilledLng: Double = 0.0,
+    viewModel: DestinationRegViewModel = hiltViewModel(),
 ) {
     var name by remember { mutableStateOf(prefilledName) }
     var targetText by remember { mutableStateOf("") }
     var radius by remember { mutableStateOf("30") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf("") }
+
+    val uiState by viewModel.uiState.collectAsState()
 
     val coordinateText = if (prefilledLat != 0.0 && prefilledLng != 0.0) {
         "%.6f, %.6f".format(prefilledLat, prefilledLng)
@@ -43,7 +45,6 @@ fun DestinationRegScreen(
             .navigationBarsPadding()
             .padding(horizontal = 24.dp),
     ) {
-        // 스크롤 가능한 폼 영역
         Column(
             modifier = Modifier
                 .weight(1f)
@@ -69,16 +70,15 @@ fun DestinationRegScreen(
 
             AiCaneTextField(
                 value = name,
-                onValueChange = { name = it; errorMsg = "" },
+                onValueChange = { name = it; viewModel.clearError() },
                 label = "이름",
                 placeholder = "예: 집, 회사, 병원",
-                isError = errorMsg.isNotEmpty(),
-                errorMessage = errorMsg,
+                isError = uiState.errorMessage.isNotEmpty(),
+                errorMessage = uiState.errorMessage,
             )
 
             Spacer(Modifier.height(16.dp))
 
-            // 검색에서 확정된 주소 — 읽기 전용
             AiCaneTextField(
                 value = prefilledAddress,
                 onValueChange = {},
@@ -89,7 +89,6 @@ fun DestinationRegScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            // 검색에서 확정된 좌표 — 읽기 전용
             AiCaneTextField(
                 value = coordinateText,
                 onValueChange = {},
@@ -122,15 +121,23 @@ fun DestinationRegScreen(
             Spacer(Modifier.height(32.dp))
         }
 
-        // 하단 고정 버튼
         FullWidthPillButton(
             text = "저장",
-            onClick = { isLoading = true; onSaved() },
-            isLoading = isLoading,
+            onClick = {
+                viewModel.save(
+                    name = name,
+                    targetText = targetText,
+                    latitude = prefilledLat,
+                    longitude = prefilledLng,
+                    radius = radius.toDoubleOrNull() ?: 30.0,
+                )
+            },
+            isLoading = uiState.isLoading,
             enabled = name.isNotBlank()
                 && prefilledAddress.isNotBlank()
                 && targetText.isNotBlank()
-                && radius.toDoubleOrNull() != null,
+                && radius.toDoubleOrNull() != null
+                && !uiState.isLoading,
         )
 
         Spacer(Modifier.height(24.dp))

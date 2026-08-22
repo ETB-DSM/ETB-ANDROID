@@ -16,6 +16,10 @@ import com.aicane.app.presentation.auth.SignupViewModel
 import com.aicane.app.presentation.auth.SplashViewModel
 import com.aicane.app.presentation.auth.VerifyEvent
 import com.aicane.app.presentation.auth.VerifyViewModel
+import com.aicane.app.presentation.destination.DestinationListEvent
+import com.aicane.app.presentation.destination.DestinationListViewModel
+import com.aicane.app.presentation.destination.DestinationRegEvent
+import com.aicane.app.presentation.destination.DestinationRegViewModel
 import com.aicane.app.presentation.device.DeviceEvent
 import com.aicane.app.presentation.device.DeviceViewModel
 import com.aicane.app.presentation.guardian.GuardianEvent
@@ -26,7 +30,6 @@ import com.aicane.app.ui.screen.auth.SignupScreen
 import com.aicane.app.ui.screen.auth.VerifyScreen
 import com.aicane.app.ui.screen.destination.DestinationListScreen
 import com.aicane.app.ui.screen.destination.DestinationRegScreen
-import com.aicane.app.ui.screen.destination.PlaceResult
 import com.aicane.app.ui.screen.destination.SearchScreen
 import com.aicane.app.ui.screen.mypage.MypageScreen
 import com.aicane.app.ui.screen.navigation.NavigationEndScreen
@@ -138,15 +141,24 @@ fun NavGraph(
             )
         }
         composable(Screen.DestinationList.route) {
+            val viewModel: DestinationListViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        is DestinationListEvent.NavigateToNavigation ->
+                            navController.navigate(Screen.Navigation.createRoute(event.sessionId))
+                    }
+                }
+            }
             DestinationListScreen(
-                onNavigateToSearch  = { navController.navigate(Screen.Search.route) },
-                onNavigateToMypage  = { navController.navigate(Screen.Mypage.route) },
-                onStartNavigation   = { sessionId -> navController.navigate(Screen.Navigation.createRoute(sessionId)) },
+                onNavigateToSearch = { navController.navigate(Screen.Search.route) },
+                onNavigateToMypage = { navController.navigate(Screen.Mypage.route) },
+                viewModel = viewModel,
             )
         }
         composable(Screen.Search.route) {
             SearchScreen(
-                onBack          = { navController.popBackStack() },
+                onBack = { navController.popBackStack() },
                 onPlaceSelected = { place ->
                     navController.navigate(
                         Screen.DestinationReg.createRoute(
@@ -168,13 +180,24 @@ fun NavGraph(
                 navArgument("lng")     { type = NavType.FloatType;  defaultValue = 0f },
             ),
         ) { backStackEntry ->
+            val viewModel: DestinationRegViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        DestinationRegEvent.Saved ->
+                            navController.navigate(Screen.DestinationList.route) {
+                                popUpTo(Screen.Search.route) { inclusive = true }
+                            }
+                    }
+                }
+            }
             DestinationRegScreen(
-                onBack          = { navController.popBackStack() },
-                onSaved         = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Search.route) { inclusive = true } } },
+                onBack           = { navController.popBackStack() },
                 prefilledName    = backStackEntry.arguments?.getString("name").orEmpty(),
                 prefilledAddress = backStackEntry.arguments?.getString("address").orEmpty(),
                 prefilledLat     = backStackEntry.arguments?.getFloat("lat")?.toDouble() ?: 0.0,
                 prefilledLng     = backStackEntry.arguments?.getFloat("lng")?.toDouble() ?: 0.0,
+                viewModel        = viewModel,
             )
         }
         composable(
