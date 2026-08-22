@@ -8,13 +8,16 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.presentation.mypage.MypageViewModel
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.PillButtonVariant
@@ -23,12 +26,10 @@ import com.aicane.app.ui.theme.*
 @Composable
 fun MypageScreen(
     onBack: () -> Unit,
-    userName: String = "홍길동",
-    userEmail: String = "user@example.com",
-    deviceId: String = "AICANE-001",
-    guardianName: String = "보호자",
-    guardianPhone: String = "010-0000-0000",
+    viewModel: MypageViewModel = hiltViewModel(),
 ) {
+    val uiState by viewModel.uiState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -48,11 +49,11 @@ fun MypageScreen(
                 modifier = Modifier.padding(start = 16.dp, top = 16.dp),
             )
 
-            Column(
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(top = 24.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
+                contentAlignment = Alignment.Center,
             ) {
                 Box(
                     modifier = Modifier
@@ -68,12 +69,6 @@ fun MypageScreen(
                         modifier = Modifier.size(32.dp),
                     )
                 }
-
-                Spacer(Modifier.height(12.dp))
-
-                Text(text = userName, style = DisplaySm, color = OnInk)
-                Spacer(Modifier.height(4.dp))
-                Text(text = userEmail, style = BodyMd, color = OnInk.copy(alpha = 0.7f))
             }
         }
 
@@ -83,18 +78,34 @@ fun MypageScreen(
                 .padding(horizontal = 24.dp, vertical = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            SectionCard(title = "등록된 기기") {
-                InfoRow(label = "기기 ID", value = deviceId)
-            }
+            if (uiState.isLoading) {
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = Ink)
+                }
+            } else {
+                SectionCard(title = "등록된 기기") {
+                    InfoRow(
+                        label = "기기 ID",
+                        value = uiState.deviceId.ifEmpty { "-" },
+                    )
+                }
 
-            SectionCard(title = "보호자 정보") {
-                InfoRow(label = "이름", value = guardianName)
-                InfoRow(label = "전화번호", value = guardianPhone)
+                SectionCard(title = "보호자 정보") {
+                    InfoRow(label = "이름", value = uiState.guardianName.ifEmpty { "-" })
+                    InfoRow(label = "전화번호", value = uiState.guardianPhone.ifEmpty { "-" })
+                }
+
+                if (uiState.errorMessage.isNotEmpty()) {
+                    Text(text = uiState.errorMessage, style = BodySm, color = TextBody)
+                }
             }
 
             FullWidthPillButton(
                 text = "로그아웃",
-                onClick = {},
+                onClick = { viewModel.logout() },
                 variant = PillButtonVariant.Danger,
             )
         }
