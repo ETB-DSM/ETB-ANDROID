@@ -30,9 +30,16 @@ fun AiCaneTextField(
     isError: Boolean = false,
     errorMessage: String = "",
     caption: String = "",
+    enabled: Boolean = true,
 ) {
     val shape = RoundedCornerShape(8.dp)
-    val borderColor = if (isError) Error else CanvasSoft
+    val borderColor = when {
+        isError   -> Error
+        !enabled  -> CanvasSoft
+        else      -> CanvasSoft
+    }
+    val bgColor  = if (enabled) CanvasSoft else SurfacePressed
+    val textColor = if (enabled) Ink else TextMute
 
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(6.dp)) {
         if (label.isNotEmpty()) {
@@ -40,10 +47,11 @@ fun AiCaneTextField(
         }
         BasicTextField(
             value = value,
-            onValueChange = onValueChange,
+            onValueChange = if (enabled) onValueChange else { _ -> },
             singleLine = true,
-            textStyle = BodyLg.copy(color = Ink),
-            cursorBrush = SolidColor(Ink),
+            readOnly = !enabled,
+            textStyle = BodyLg.copy(color = textColor),
+            cursorBrush = SolidColor(if (enabled) Ink else androidx.compose.ui.graphics.Color.Transparent),
             visualTransformation = if (isPassword) PasswordVisualTransformation() else VisualTransformation.None,
             keyboardOptions = KeyboardOptions(keyboardType = keyboardType),
             decorationBox = { innerTextField ->
@@ -52,7 +60,7 @@ fun AiCaneTextField(
                         .fillMaxWidth()
                         .height(64.dp)
                         .clip(shape)
-                        .background(CanvasSoft)
+                        .background(bgColor)
                         .border(1.dp, borderColor, shape)
                         .padding(horizontal = 18.dp),
                     contentAlignment = Alignment.CenterStart,
