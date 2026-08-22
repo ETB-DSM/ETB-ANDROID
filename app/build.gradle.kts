@@ -79,4 +79,5 @@ dependencies {
     implementation(libs.activity.compose)
     implementation(libs.splashscreen)
     implementation(libs.security.crypto)
+    implementation(libs.play.services.location)
 }

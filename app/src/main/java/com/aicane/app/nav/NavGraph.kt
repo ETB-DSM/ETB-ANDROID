@@ -24,6 +24,8 @@ import com.aicane.app.presentation.device.DeviceEvent
 import com.aicane.app.presentation.device.DeviceViewModel
 import com.aicane.app.presentation.guardian.GuardianEvent
 import com.aicane.app.presentation.guardian.GuardianViewModel
+import com.aicane.app.presentation.navigation.NavigationEvent
+import com.aicane.app.presentation.navigation.NavigationViewModel
 import com.aicane.app.ui.screen.SplashScreen
 import com.aicane.app.ui.screen.auth.LoginScreen
 import com.aicane.app.ui.screen.auth.SignupScreen
@@ -146,7 +148,15 @@ fun NavGraph(
                 viewModel.events.collect { event ->
                     when (event) {
                         is DestinationListEvent.NavigateToNavigation ->
-                            navController.navigate(Screen.Navigation.createRoute(event.sessionId))
+                            navController.navigate(
+                                Screen.Navigation.createRoute(
+                                    sessionId  = event.sessionId,
+                                    destLat    = event.destination.latitude,
+                                    destLng    = event.destination.longitude,
+                                    destRadius = event.destination.radius,
+                                    destName   = event.destination.name,
+                                )
+                            )
                     }
                 }
             }
@@ -202,12 +212,32 @@ fun NavGraph(
         }
         composable(
             route = Screen.Navigation.route,
-            arguments = listOf(navArgument("sessionId") { type = NavType.StringType }),
+            arguments = listOf(
+                navArgument("sessionId")  { type = NavType.StringType; defaultValue = "" },
+                navArgument("destLat")    { type = NavType.FloatType;  defaultValue = 0f },
+                navArgument("destLng")    { type = NavType.FloatType;  defaultValue = 0f },
+                navArgument("destRadius") { type = NavType.FloatType;  defaultValue = 30f },
+                navArgument("destName")   { type = NavType.StringType; defaultValue = "목적지" },
+            ),
         ) { backStackEntry ->
-            val sessionId = backStackEntry.arguments?.getString("sessionId").orEmpty()
+            val viewModel: NavigationViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        NavigationEvent.NavigateToEnd ->
+                            navController.navigate(Screen.NavigationEnd.route) {
+                                popUpTo(Screen.Navigation.route) { inclusive = true }
+                            }
+                    }
+                }
+            }
             NavigationScreen(
-                sessionId = sessionId,
-                onEnd = { navController.navigate(Screen.NavigationEnd.route) { popUpTo(Screen.Navigation.route) { inclusive = true } } },
+                sessionId  = backStackEntry.arguments?.getString("sessionId").orEmpty(),
+                destLat    = backStackEntry.arguments?.getFloat("destLat")?.toDouble() ?: 0.0,
+                destLng    = backStackEntry.arguments?.getFloat("destLng")?.toDouble() ?: 0.0,
+                destRadius = backStackEntry.arguments?.getFloat("destRadius")?.toDouble() ?: 30.0,
+                destName   = backStackEntry.arguments?.getString("destName") ?: "목적지",
+                viewModel  = viewModel,
             )
         }
         composable(Screen.NavigationEnd.route) {

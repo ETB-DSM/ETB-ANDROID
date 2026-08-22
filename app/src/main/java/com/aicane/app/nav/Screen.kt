@@ -18,8 +18,21 @@ sealed class Screen(val route: String) {
             return "destination_reg?name=$encodedName&address=$encodedAddress&lat=$lat&lng=$lng"
         }
     }
-    data object Navigation      : Screen("navigation/{sessionId}") {
-        fun createRoute(sessionId: String) = "navigation/$sessionId"
+    data object Navigation      : Screen(
+        "navigation?sessionId={sessionId}&destLat={destLat}&destLng={destLng}&destRadius={destRadius}&destName={destName}"
+    ) {
+        fun createRoute(
+            sessionId: String,
+            destLat: Double,
+            destLng: Double,
+            destRadius: Double,
+            destName: String,
+        ) = "navigation" +
+            "?sessionId=$sessionId" +
+            "&destLat=${destLat.toFloat()}" +
+            "&destLng=${destLng.toFloat()}" +
+            "&destRadius=${destRadius.toFloat()}" +
+            "&destName=${android.net.Uri.encode(destName)}"
     }
     data object NavigationEnd   : Screen("navigation_end")
     data object Mypage          : Screen("mypage")

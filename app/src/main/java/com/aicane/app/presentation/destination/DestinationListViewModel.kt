@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class DestinationListEvent {
-    data class NavigateToNavigation(val sessionId: String) : DestinationListEvent()
+    data class NavigateToNavigation(val sessionId: String, val destination: Destination) : DestinationListEvent()
 }
 
 @HiltViewModel
@@ -54,10 +54,11 @@ class DestinationListViewModel @Inject constructor(
     }
 
     fun startNavigation(destinationId: String) {
+        val destination = _uiState.value.destinations.find { it.destinationId == destinationId } ?: return
         viewModelScope.launch {
             createSessionUseCase(destinationId)
                 .onSuccess { session ->
-                    _events.send(DestinationListEvent.NavigateToNavigation(session.sessionId))
+                    _events.send(DestinationListEvent.NavigateToNavigation(session.sessionId, destination))
                 }
                 .onFailure { error ->
                     _uiState.update {
