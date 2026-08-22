@@ -24,6 +24,8 @@ import com.aicane.app.presentation.device.DeviceEvent
 import com.aicane.app.presentation.device.DeviceViewModel
 import com.aicane.app.presentation.guardian.GuardianEvent
 import com.aicane.app.presentation.guardian.GuardianViewModel
+import com.aicane.app.presentation.mypage.MypageEvent
+import com.aicane.app.presentation.mypage.MypageViewModel
 import com.aicane.app.presentation.navigation.NavigationEvent
 import com.aicane.app.presentation.navigation.NavigationViewModel
 import com.aicane.app.ui.screen.SplashScreen
@@ -246,8 +248,20 @@ fun NavGraph(
             )
         }
         composable(Screen.Mypage.route) {
+            val viewModel: MypageViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        MypageEvent.NavigateToLogin ->
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(0) { inclusive = true }
+                            }
+                    }
+                }
+            }
             MypageScreen(
-                onBack = { navController.popBackStack() },
+                onBack    = { navController.popBackStack() },
+                viewModel = viewModel,
             )
         }
     }
