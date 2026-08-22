@@ -7,6 +7,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.presentation.guardian.GuardianViewModel
 import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.PillButtonVariant
@@ -15,13 +17,13 @@ import com.aicane.app.ui.theme.*
 
 @Composable
 fun GuardianScreen(
-    onNext: () -> Unit,
     onSkip: () -> Unit,
+    viewModel: GuardianViewModel = hiltViewModel(),
 ) {
     var name by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf("") }
+
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -51,7 +53,7 @@ fun GuardianScreen(
 
         AiCaneTextField(
             value = name,
-            onValueChange = { name = it; errorMsg = "" },
+            onValueChange = { name = it; viewModel.clearError() },
             label = "보호자 이름",
             placeholder = "이름을 입력하세요",
         )
@@ -60,21 +62,21 @@ fun GuardianScreen(
 
         AiCaneTextField(
             value = phone,
-            onValueChange = { phone = it; errorMsg = "" },
+            onValueChange = { phone = it; viewModel.clearError() },
             label = "전화번호",
             placeholder = "010-0000-0000",
             keyboardType = KeyboardType.Phone,
-            isError = errorMsg.isNotEmpty(),
-            errorMessage = errorMsg,
+            isError = uiState.errorMessage.isNotEmpty(),
+            errorMessage = uiState.errorMessage,
         )
 
         Spacer(Modifier.weight(1f))
 
         FullWidthPillButton(
             text = "보호자 등록",
-            onClick = { isLoading = true; onNext() },
-            isLoading = isLoading,
-            enabled = name.isNotBlank() && phone.isNotBlank(),
+            onClick = { viewModel.register(name, phone) },
+            isLoading = uiState.isLoading,
+            enabled = name.isNotBlank() && phone.isNotBlank() && !uiState.isLoading,
         )
 
         Spacer(Modifier.height(12.dp))

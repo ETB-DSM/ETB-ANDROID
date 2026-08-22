@@ -6,6 +6,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.presentation.device.DeviceViewModel
 import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.StepIndicator
@@ -13,11 +15,11 @@ import com.aicane.app.ui.theme.*
 
 @Composable
 fun DeviceScreen(
-    onNext: () -> Unit,
+    viewModel: DeviceViewModel = hiltViewModel(),
 ) {
     var deviceId by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf("") }
+
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -47,20 +49,20 @@ fun DeviceScreen(
 
         AiCaneTextField(
             value = deviceId,
-            onValueChange = { deviceId = it; errorMsg = "" },
+            onValueChange = { deviceId = it; viewModel.clearError() },
             label = "기기 ID",
             placeholder = "기기 ID를 입력하세요",
-            isError = errorMsg.isNotEmpty(),
-            errorMessage = errorMsg,
+            isError = uiState.errorMessage.isNotEmpty(),
+            errorMessage = uiState.errorMessage,
         )
 
         Spacer(Modifier.weight(1f))
 
         FullWidthPillButton(
             text = "기기 등록",
-            onClick = { isLoading = true; onNext() },
-            isLoading = isLoading,
-            enabled = deviceId.isNotBlank(),
+            onClick = { viewModel.register(deviceId) },
+            isLoading = uiState.isLoading,
+            enabled = deviceId.isNotBlank() && !uiState.isLoading,
         )
 
         Spacer(Modifier.height(24.dp))
