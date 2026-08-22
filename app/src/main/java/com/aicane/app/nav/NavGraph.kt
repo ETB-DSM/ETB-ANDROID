@@ -16,6 +16,10 @@ import com.aicane.app.presentation.auth.SignupViewModel
 import com.aicane.app.presentation.auth.SplashViewModel
 import com.aicane.app.presentation.auth.VerifyEvent
 import com.aicane.app.presentation.auth.VerifyViewModel
+import com.aicane.app.presentation.device.DeviceEvent
+import com.aicane.app.presentation.device.DeviceViewModel
+import com.aicane.app.presentation.guardian.GuardianEvent
+import com.aicane.app.presentation.guardian.GuardianViewModel
 import com.aicane.app.ui.screen.SplashScreen
 import com.aicane.app.ui.screen.auth.LoginScreen
 import com.aicane.app.ui.screen.auth.SignupScreen
@@ -101,14 +105,36 @@ fun NavGraph(
             )
         }
         composable(Screen.Device.route) {
-            DeviceScreen(
-                onNext = { navController.navigate(Screen.Guardian.route) },
-            )
+            val viewModel: DeviceViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        DeviceEvent.NavigateToGuardian ->
+                            navController.navigate(Screen.Guardian.route)
+                    }
+                }
+            }
+            DeviceScreen(viewModel = viewModel)
         }
         composable(Screen.Guardian.route) {
+            val viewModel: GuardianViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        GuardianEvent.NavigateToDestinationList ->
+                            navController.navigate(Screen.DestinationList.route) {
+                                popUpTo(Screen.Device.route) { inclusive = true }
+                            }
+                    }
+                }
+            }
             GuardianScreen(
-                onNext = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Device.route) { inclusive = true } } },
-                onSkip = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Device.route) { inclusive = true } } },
+                onSkip = {
+                    navController.navigate(Screen.DestinationList.route) {
+                        popUpTo(Screen.Device.route) { inclusive = true }
+                    }
+                },
+                viewModel = viewModel,
             )
         }
         composable(Screen.DestinationList.route) {
