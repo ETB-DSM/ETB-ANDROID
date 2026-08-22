@@ -14,6 +14,7 @@ coroutines = "1.8.1"
 lifecycleRuntimeKtx = "2.8.6"
 activityCompose = "1.9.2"
 splashscreen = "1.0.1"
+securityCrypto = "1.1.0-alpha06"
 
 [libraries]
 # Compose BOM
@@ -50,6 +51,9 @@ activity-compose = { group = "androidx.activity", name = "activity-compose", ver
 
 # Splash screen
 splashscreen = { group = "androidx.core", name = "core-splashscreen", version.ref = "splashscreen" }
+
+# Security
+security-crypto = { group = "androidx.security", name = "security-crypto", version.ref = "securityCrypto" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
