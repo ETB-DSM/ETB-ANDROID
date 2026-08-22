@@ -4,7 +4,9 @@ sealed class Screen(val route: String) {
     data object Splash          : Screen("splash")
     data object Login           : Screen("login")
     data object Signup          : Screen("signup")
-    data object Verify          : Screen("verify")
+    data object Verify          : Screen("verify?email={email}") {
+        fun createRoute(email: String) = "verify?email=${android.net.Uri.encode(email)}"
+    }
     data object Device          : Screen("device")
     data object Guardian        : Screen("guardian")
     data object DestinationList : Screen("destination_list")
