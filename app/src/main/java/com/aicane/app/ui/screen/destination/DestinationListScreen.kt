@@ -54,7 +54,7 @@ fun DestinationListScreen(
                 IconButton(
                     onClick = onNavigateToSearch,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(CanvasSoft),
                 ) {
@@ -67,7 +67,7 @@ fun DestinationListScreen(
                 IconButton(
                     onClick = onNavigateToMypage,
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(48.dp)
                         .clip(CircleShape)
                         .background(Ink),
                 ) {
