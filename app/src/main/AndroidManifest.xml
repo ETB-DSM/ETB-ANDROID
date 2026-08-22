@@ -28,6 +28,10 @@
             </intent-filter>
         </activity>
 
+        <service
+            android:name=".service.NavigationService"
+            android:foregroundServiceType="location" />
+
     </application>
 
 </manifest>
