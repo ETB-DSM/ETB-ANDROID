@@ -9,6 +9,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.presentation.auth.SignupViewModel
 import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
@@ -20,15 +22,14 @@ private enum class SignupStep { Email, Name, Password }
 @Composable
 fun SignupScreen(
     onBack: () -> Unit,
-    onSignupSuccess: () -> Unit,
+    viewModel: SignupViewModel = hiltViewModel(),
 ) {
     var step by remember { mutableStateOf(SignupStep.Email) }
     var email by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
-    var isLoading by remember { mutableStateOf(false) }
-    var errorMsg by remember { mutableStateOf("") }
 
+    val uiState by viewModel.uiState.collectAsState()
     val currentStep = step.ordinal + 1
 
     Column(
@@ -49,8 +50,8 @@ fun SignupScreen(
                 onClick = {
                     when (step) {
                         SignupStep.Email    -> onBack()
-                        SignupStep.Name     -> { step = SignupStep.Email; errorMsg = "" }
-                        SignupStep.Password -> { step = SignupStep.Name; errorMsg = "" }
+                        SignupStep.Name     -> { step = SignupStep.Email; viewModel.clearError() }
+                        SignupStep.Password -> { step = SignupStep.Name; viewModel.clearError() }
                     }
                 },
             )
@@ -83,12 +84,12 @@ fun SignupScreen(
                         Spacer(Modifier.height(32.dp))
                         AiCaneTextField(
                             value = email,
-                            onValueChange = { email = it; errorMsg = "" },
+                            onValueChange = { email = it; viewModel.clearError() },
                             label = "이메일",
                             placeholder = "example@email.com",
                             keyboardType = KeyboardType.Email,
-                            isError = errorMsg.isNotEmpty(),
-                            errorMessage = errorMsg,
+                            isError = uiState.errorMessage.isNotEmpty(),
+                            errorMessage = uiState.errorMessage,
                         )
                     }
                     SignupStep.Name -> {
@@ -102,11 +103,11 @@ fun SignupScreen(
                         Spacer(Modifier.height(32.dp))
                         AiCaneTextField(
                             value = name,
-                            onValueChange = { name = it; errorMsg = "" },
+                            onValueChange = { name = it; viewModel.clearError() },
                             label = "이름",
                             placeholder = "이름을 입력하세요",
-                            isError = errorMsg.isNotEmpty(),
-                            errorMessage = errorMsg,
+                            isError = uiState.errorMessage.isNotEmpty(),
+                            errorMessage = uiState.errorMessage,
                         )
                     }
                     SignupStep.Password -> {
@@ -120,12 +121,12 @@ fun SignupScreen(
                         Spacer(Modifier.height(32.dp))
                         AiCaneTextField(
                             value = password,
-                            onValueChange = { password = it; errorMsg = "" },
+                            onValueChange = { password = it; viewModel.clearError() },
                             label = "비밀번호",
                             placeholder = "8자 이상 입력",
                             isPassword = true,
-                            isError = errorMsg.isNotEmpty(),
-                            errorMessage = errorMsg,
+                            isError = uiState.errorMessage.isNotEmpty(),
+                            errorMessage = uiState.errorMessage,
                         )
                     }
                 }
@@ -144,14 +145,14 @@ fun SignupScreen(
                 when (step) {
                     SignupStep.Email    -> step = SignupStep.Name
                     SignupStep.Name     -> step = SignupStep.Password
-                    SignupStep.Password -> { isLoading = true; onSignupSuccess() }
+                    SignupStep.Password -> viewModel.signup(email, name, password)
                 }
             },
-            isLoading = isLoading && step == SignupStep.Password,
+            isLoading = uiState.isLoading,
             enabled = when (step) {
                 SignupStep.Email    -> email.isNotBlank()
                 SignupStep.Name     -> name.isNotBlank()
-                SignupStep.Password -> password.length >= 8
+                SignupStep.Password -> password.length >= 8 && !uiState.isLoading
             },
         )
 

@@ -1,19 +1,28 @@
 package com.aicane.app.nav
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavHostController
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.aicane.app.ui.screen.destination.PlaceResult
+import com.aicane.app.presentation.auth.LoginEvent
+import com.aicane.app.presentation.auth.LoginViewModel
+import com.aicane.app.presentation.auth.SignupEvent
+import com.aicane.app.presentation.auth.SignupViewModel
+import com.aicane.app.presentation.auth.SplashViewModel
+import com.aicane.app.presentation.auth.VerifyEvent
+import com.aicane.app.presentation.auth.VerifyViewModel
 import com.aicane.app.ui.screen.SplashScreen
 import com.aicane.app.ui.screen.auth.LoginScreen
 import com.aicane.app.ui.screen.auth.SignupScreen
 import com.aicane.app.ui.screen.auth.VerifyScreen
 import com.aicane.app.ui.screen.destination.DestinationListScreen
 import com.aicane.app.ui.screen.destination.DestinationRegScreen
+import com.aicane.app.ui.screen.destination.PlaceResult
 import com.aicane.app.ui.screen.destination.SearchScreen
 import com.aicane.app.ui.screen.mypage.MypageScreen
 import com.aicane.app.ui.screen.navigation.NavigationEndScreen
@@ -30,31 +39,65 @@ fun NavGraph(
         startDestination = Screen.Splash.route,
     ) {
         composable(Screen.Splash.route) {
+            val viewModel: SplashViewModel = hiltViewModel()
             SplashScreen(
                 onNavigateToLogin = { navController.navigate(Screen.Login.route) { popUpTo(Screen.Splash.route) { inclusive = true } } },
                 onNavigateToList  = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Splash.route) { inclusive = true } } },
-                hasSession = false,  // Phase 3 인증 ViewModel 연동 후 실제 토큰 체크로 교체
+                hasSession = viewModel.hasSession,
             )
         }
         composable(Screen.Login.route) {
+            val viewModel: LoginViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        is LoginEvent.NavigateAfterLogin -> {
+                            val dest = if (event.isFirst) Screen.Device.route else Screen.DestinationList.route
+                            navController.navigate(dest) { popUpTo(Screen.Login.route) { inclusive = true } }
+                        }
+                    }
+                }
+            }
             LoginScreen(
                 onNavigateToSignup = { navController.navigate(Screen.Signup.route) },
-                onLoginSuccess     = { isFirst ->
-                    if (isFirst) navController.navigate(Screen.Device.route) { popUpTo(Screen.Login.route) { inclusive = true } }
-                    else navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Login.route) { inclusive = true } }
-                },
+                viewModel = viewModel,
             )
         }
         composable(Screen.Signup.route) {
+            val viewModel: SignupViewModel = hiltViewModel()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        is SignupEvent.NavigateToVerify ->
+                            navController.navigate(Screen.Verify.createRoute(event.email))
+                    }
+                }
+            }
             SignupScreen(
-                onBack          = { navController.popBackStack() },
-                onSignupSuccess = { navController.navigate(Screen.Verify.route) },
+                onBack = { navController.popBackStack() },
+                viewModel = viewModel,
             )
         }
-        composable(Screen.Verify.route) {
+        composable(
+            route = Screen.Verify.route,
+            arguments = listOf(navArgument("email") { type = NavType.StringType; defaultValue = "" }),
+        ) { backStackEntry ->
+            val viewModel: VerifyViewModel = hiltViewModel()
+            val email = backStackEntry.arguments?.getString("email").orEmpty()
+            LaunchedEffect(viewModel) {
+                viewModel.events.collect { event ->
+                    when (event) {
+                        VerifyEvent.NavigateToLogin ->
+                            navController.navigate(Screen.Login.route) {
+                                popUpTo(Screen.Signup.route) { inclusive = true }
+                            }
+                    }
+                }
+            }
             VerifyScreen(
-                onBack          = { navController.popBackStack() },
-                onVerifySuccess = { navController.navigate(Screen.Login.route) { popUpTo(Screen.Signup.route) { inclusive = true } } },
+                email = email,
+                onBack = { navController.popBackStack() },
+                viewModel = viewModel,
             )
         }
         composable(Screen.Device.route) {
