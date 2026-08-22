@@ -24,24 +24,23 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import com.aicane.app.ui.theme.*
 
-data class PlaceResult(val name: String, val address: String)
+data class PlaceResult(
+    val name: String,
+    val address: String,
+    val latitude: Double,
+    val longitude: Double,
+)
 
 @Composable
 fun SearchScreen(
     onBack: () -> Unit,
     onPlaceSelected: (PlaceResult) -> Unit,
+    results: List<PlaceResult> = emptyList(),
+    isLoading: Boolean = false,
+    onQueryChange: (String) -> Unit = {},
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
-
-    val results = remember(query) {
-        if (query.isBlank()) emptyList()
-        else listOf(
-            PlaceResult("${query} 역", "서울특별시 강남구"),
-            PlaceResult("${query} 병원", "서울특별시 송파구"),
-            PlaceResult("${query} 공원", "서울특별시 마포구"),
-        )
-    }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -91,7 +90,10 @@ fun SearchScreen(
                     }
                     BasicTextField(
                         value = query,
-                        onValueChange = { query = it },
+                        onValueChange = {
+                            query = it
+                            onQueryChange(it)
+                        },
                         singleLine = true,
                         textStyle = BodyLg.copy(color = Ink),
                         cursorBrush = SolidColor(Ink),
@@ -103,7 +105,10 @@ fun SearchScreen(
 
                 if (query.isNotEmpty()) {
                     IconButton(
-                        onClick = { query = "" },
+                        onClick = {
+                            query = ""
+                            onQueryChange("")
+                        },
                         modifier = Modifier.size(32.dp),
                     ) {
                         Icon(
@@ -124,30 +129,72 @@ fun SearchScreen(
             )
         }
 
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-        ) {
-            items(results) { place ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onPlaceSelected(place) }
-                        .padding(vertical = 16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    Column {
-                        Text(text = place.name, style = BodyMdStrong, color = Ink)
-                        Spacer(Modifier.height(4.dp))
-                        Text(text = place.address, style = BodySm, color = TextBody)
-                    }
-                }
+        when {
+            query.isBlank() -> {
                 Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .height(1.dp)
-                        .background(CanvasSoft),
-                )
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(
+                        text = "장소명이나 주소를 입력하세요",
+                        style = BodyMd,
+                        color = TextMute,
+                    )
+                }
+            }
+            isLoading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "검색 중...", style = BodyMd, color = TextMute)
+                }
+            }
+            results.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "검색 결과가 없어요", style = BodyMdStrong, color = TextBody)
+                        Spacer(Modifier.height(8.dp))
+                        Text(text = "다른 검색어를 입력해보세요", style = BodySm, color = TextMute)
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                ) {
+                    items(results) { place ->
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { onPlaceSelected(place) }
+                                .padding(vertical = 16.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Column {
+                                Text(text = place.name, style = BodyMdStrong, color = Ink)
+                                Spacer(Modifier.height(4.dp))
+                                Text(text = place.address, style = BodySm, color = TextBody)
+                            }
+                        }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .height(1.dp)
+                                .background(CanvasSoft),
+                        )
+                    }
+                }
             }
         }
     }

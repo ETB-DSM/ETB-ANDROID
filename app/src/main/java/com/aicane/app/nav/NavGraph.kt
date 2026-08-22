@@ -7,6 +7,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.aicane.app.ui.screen.destination.PlaceResult
 import com.aicane.app.ui.screen.SplashScreen
 import com.aicane.app.ui.screen.auth.LoginScreen
 import com.aicane.app.ui.screen.auth.SignupScreen
@@ -32,6 +33,7 @@ fun NavGraph(
             SplashScreen(
                 onNavigateToLogin = { navController.navigate(Screen.Login.route) { popUpTo(Screen.Splash.route) { inclusive = true } } },
                 onNavigateToList  = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Splash.route) { inclusive = true } } },
+                hasSession = false,  // Phase 3 인증 ViewModel 연동 후 실제 토큰 체크로 교체
             )
         }
         composable(Screen.Login.route) {
@@ -75,14 +77,35 @@ fun NavGraph(
         }
         composable(Screen.Search.route) {
             SearchScreen(
-                onBack             = { navController.popBackStack() },
-                onPlaceSelected    = { navController.navigate(Screen.DestinationReg.route) },
+                onBack          = { navController.popBackStack() },
+                onPlaceSelected = { place ->
+                    navController.navigate(
+                        Screen.DestinationReg.createRoute(
+                            name    = place.name,
+                            address = place.address,
+                            lat     = place.latitude,
+                            lng     = place.longitude,
+                        )
+                    )
+                },
             )
         }
-        composable(Screen.DestinationReg.route) {
+        composable(
+            route = Screen.DestinationReg.route,
+            arguments = listOf(
+                navArgument("name")    { type = NavType.StringType; defaultValue = "" },
+                navArgument("address") { type = NavType.StringType; defaultValue = "" },
+                navArgument("lat")     { type = NavType.FloatType;  defaultValue = 0f },
+                navArgument("lng")     { type = NavType.FloatType;  defaultValue = 0f },
+            ),
+        ) { backStackEntry ->
             DestinationRegScreen(
-                onBack   = { navController.popBackStack() },
-                onSaved  = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Search.route) { inclusive = true } } },
+                onBack          = { navController.popBackStack() },
+                onSaved         = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.Search.route) { inclusive = true } } },
+                prefilledName    = backStackEntry.arguments?.getString("name").orEmpty(),
+                prefilledAddress = backStackEntry.arguments?.getString("address").orEmpty(),
+                prefilledLat     = backStackEntry.arguments?.getFloat("lat")?.toDouble() ?: 0.0,
+                prefilledLng     = backStackEntry.arguments?.getFloat("lng")?.toDouble() ?: 0.0,
             )
         }
         composable(
