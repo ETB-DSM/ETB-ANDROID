@@ -79,6 +79,7 @@ class NavigationService : Service() {
                 when (action) {
                     NavigationAction.ARRIVED -> {
                         updateStatusUseCase(config.sessionId, "arrived")
+                        stopForeground(STOP_FOREGROUND_REMOVE)
                         stopSelf()
                     }
                     NavigationAction.REROUTE -> handleReroute(location.latitude, location.longitude)

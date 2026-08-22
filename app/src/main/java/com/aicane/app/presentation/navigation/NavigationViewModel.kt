@@ -86,7 +86,6 @@ class NavigationViewModel @Inject constructor(
                     config.destinationRadius = destRadius
                     stateHolder.reset()
                     context.startForegroundService(Intent(context, NavigationService::class.java))
-                    _uiState.update { it.copy(isLoading = false) }
                 }
                 .onFailure { error ->
                     _uiState.update {

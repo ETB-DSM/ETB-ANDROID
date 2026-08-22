@@ -19,18 +19,21 @@ class ActionUploader @Inject constructor(
         val actionChanged = instruction.action != lastAction
         val keepAliveExpired = now - lastUploadTime >= 30_000L
 
-        if (actionChanged || keepAliveExpired) {
-            createInstructionUseCase(
+        if (!actionChanged && !keepAliveExpired) return
+
+        for (attempt in 1..3) {
+            val result = createInstructionUseCase(
                 sessionId      = instruction.sessionId,
                 action         = instruction.action,
                 distanceMeters = instruction.distanceMeters,
                 message        = instruction.message,
-            ).onSuccess {
+            )
+            if (result.isSuccess) {
                 lastAction     = instruction.action
                 lastUploadTime = now
-            }.onFailure { error ->
-                Log.w("ActionUploader", "전송 실패: ${error.message}")
+                return
             }
+            Log.w("ActionUploader", "전송 실패 (시도 $attempt/3): ${result.exceptionOrNull()?.message}")
         }
     }
 
