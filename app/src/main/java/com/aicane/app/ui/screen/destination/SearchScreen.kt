@@ -22,6 +22,8 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.presentation.destination.SearchViewModel
 import com.aicane.app.ui.theme.*
 
 data class PlaceResult(
@@ -35,12 +37,11 @@ data class PlaceResult(
 fun SearchScreen(
     onBack: () -> Unit,
     onPlaceSelected: (PlaceResult) -> Unit,
-    results: List<PlaceResult> = emptyList(),
-    isLoading: Boolean = false,
-    onQueryChange: (String) -> Unit = {},
+    viewModel: SearchViewModel = hiltViewModel(),
 ) {
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
+    val uiState by viewModel.uiState.collectAsState()
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -92,7 +93,7 @@ fun SearchScreen(
                         value = query,
                         onValueChange = {
                             query = it
-                            onQueryChange(it)
+                            viewModel.onQueryChange(it)
                         },
                         singleLine = true,
                         textStyle = BodyLg.copy(color = Ink),
@@ -107,7 +108,7 @@ fun SearchScreen(
                     IconButton(
                         onClick = {
                             query = ""
-                            onQueryChange("")
+                            viewModel.onQueryChange("")
                         },
                         modifier = Modifier.size(32.dp),
                     ) {
@@ -144,7 +145,7 @@ fun SearchScreen(
                     )
                 }
             }
-            isLoading -> {
+            uiState.isLoading -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -154,7 +155,7 @@ fun SearchScreen(
                     Text(text = "검색 중...", style = BodyMd, color = TextMute)
                 }
             }
-            results.isEmpty() -> {
+            uiState.results.isEmpty() -> {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
@@ -173,7 +174,7 @@ fun SearchScreen(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                 ) {
-                    items(results) { place ->
+                    items(uiState.results) { place ->
                         Row(
                             modifier = Modifier
                                 .fillMaxWidth()

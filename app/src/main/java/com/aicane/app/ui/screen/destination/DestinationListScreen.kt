@@ -15,24 +15,33 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.aicane.app.domain.model.Destination
+import com.aicane.app.presentation.destination.DestinationListViewModel
 import com.aicane.app.ui.theme.*
-
-data class DestinationItem(val id: String, val name: String, val address: String)
 
 @Composable
 fun DestinationListScreen(
     onNavigateToSearch: () -> Unit,
     onNavigateToMypage: () -> Unit,
-    onStartNavigation: (sessionId: String) -> Unit,
+    viewModel: DestinationListViewModel = hiltViewModel(),
 ) {
-    val destinations = remember {
-        mutableStateListOf(
-            DestinationItem("1", "집", "서울특별시 강남구 테헤란로 123"),
-            DestinationItem("2", "병원", "서울특별시 강남구 삼성로 456"),
-        )
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                viewModel.loadDestinations()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
+
+    val uiState by viewModel.uiState.collectAsState()
 
     Column(
         modifier = Modifier
@@ -80,30 +89,41 @@ fun DestinationListScreen(
             }
         }
 
-        if (destinations.isEmpty()) {
-            Box(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(text = "등록된 목적지가 없어요", style = DisplaySm, color = TextBody)
-                    Spacer(Modifier.height(8.dp))
-                    Text(text = "+ 버튼으로 목적지를 추가해보세요", style = BodyMd, color = TextMute)
+        when {
+            uiState.isLoading -> {
+                Box(
+                    modifier = Modifier.fillMaxSize(),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    CircularProgressIndicator(color = Ink)
                 }
             }
-        } else {
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-            ) {
-                items(destinations) { dest ->
-                    DestinationCard(
-                        item = dest,
-                        onStart = { onStartNavigation("session_${dest.id}") },
-                    )
+            uiState.destinations.isEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(text = "등록된 목적지가 없어요", style = DisplaySm, color = TextBody)
+                        Spacer(Modifier.height(8.dp))
+                        Text(text = "+ 버튼으로 목적지를 추가해보세요", style = BodyMd, color = TextMute)
+                    }
+                }
+            }
+            else -> {
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                ) {
+                    items(uiState.destinations) { destination ->
+                        DestinationCard(
+                            destination = destination,
+                            onStart = { viewModel.startNavigation(destination.destinationId) },
+                        )
+                    }
                 }
             }
         }
@@ -112,7 +132,7 @@ fun DestinationListScreen(
 
 @Composable
 private fun DestinationCard(
-    item: DestinationItem,
+    destination: Destination,
     onStart: () -> Unit,
 ) {
     Row(
@@ -126,9 +146,9 @@ private fun DestinationCard(
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
-            Text(text = item.name, style = BodyMdStrong, color = Ink)
+            Text(text = destination.name, style = BodyMdStrong, color = Ink)
             Spacer(Modifier.height(4.dp))
-            Text(text = item.address, style = BodySm, color = TextBody)
+            Text(text = destination.targetText, style = BodySm, color = TextBody)
         }
         Box(
             modifier = Modifier
