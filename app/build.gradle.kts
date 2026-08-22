@@ -1,3 +1,9 @@
+import java.util.Properties
+
+val localProperties = Properties().also { props ->
+    rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(props::load)
+}
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -19,6 +25,7 @@ android {
         versionName = "1.0.0"
 
         buildConfigField("String", "BASE_URL", "\"https://api.aicane.io/\"")
+        buildConfigField("String", "TMAP_API_KEY", "\"${localProperties.getProperty("TMAP_API_KEY", "")}\"" )
     }
 
     buildTypes {
@@ -71,4 +78,5 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.compose)
     implementation(libs.activity.compose)
     implementation(libs.splashscreen)
+    implementation(libs.security.crypto)
 }
