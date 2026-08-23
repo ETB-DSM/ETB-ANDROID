@@ -9,6 +9,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -33,15 +34,22 @@ fun DestinationListScreen(
     val lifecycleOwner = LocalLifecycleOwner.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                viewModel.loadDestinations()
-            }
+            if (event == Lifecycle.Event.ON_RESUME) viewModel.loadDestinations()
         }
         lifecycleOwner.lifecycle.addObserver(observer)
         onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
     }
 
     val uiState by viewModel.uiState.collectAsState()
+
+    uiState.destinationToDelete?.let { target ->
+        DeleteConfirmDialog(
+            title = "목적지를 삭제할까요?",
+            message = "삭제한 목적지는 복구할 수 없어요.",
+            onConfirm = { viewModel.deleteDestination() },
+            onDismiss = { viewModel.cancelDelete() },
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -67,11 +75,7 @@ fun DestinationListScreen(
                         .clip(CircleShape)
                         .background(CanvasSoft),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Add,
-                        contentDescription = "목적지 추가",
-                        tint = Ink,
-                    )
+                    Icon(imageVector = Icons.Default.Add, contentDescription = "목적지 추가", tint = Ink)
                 }
                 IconButton(
                     onClick = onNavigateToMypage,
@@ -80,29 +84,20 @@ fun DestinationListScreen(
                         .clip(CircleShape)
                         .background(Ink),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = "마이페이지",
-                        tint = OnInk,
-                    )
+                    Icon(imageVector = Icons.Default.Person, contentDescription = "마이페이지", tint = OnInk)
                 }
             }
         }
 
         when {
             uiState.isLoading -> {
-                Box(
-                    modifier = Modifier.fillMaxSize(),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Ink)
                 }
             }
             uiState.destinations.isEmpty() -> {
                 Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
+                    modifier = Modifier.fillMaxSize().padding(24.dp),
                     contentAlignment = Alignment.Center,
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -113,15 +108,24 @@ fun DestinationListScreen(
                 }
             }
             else -> {
+                if (uiState.errorMessage.isNotEmpty()) {
+                    Text(
+                        text = uiState.errorMessage,
+                        style = BodySm,
+                        color = Error,
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
+                    )
+                }
                 LazyColumn(
                     modifier = Modifier.fillMaxSize(),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    items(uiState.destinations) { destination ->
+                    items(uiState.destinations, key = { it.destinationId }) { destination ->
                         DestinationCard(
                             destination = destination,
                             onStart = { viewModel.startNavigation(destination.destinationId) },
+                            onDelete = { viewModel.confirmDelete(destination) },
                         )
                     }
                 }
@@ -134,6 +138,7 @@ fun DestinationListScreen(
 private fun DestinationCard(
     destination: Destination,
     onStart: () -> Unit,
+    onDelete: () -> Unit,
 ) {
     Row(
         modifier = Modifier
@@ -150,13 +155,58 @@ private fun DestinationCard(
             Spacer(Modifier.height(4.dp))
             Text(text = destination.targetText, style = BodySm, color = TextBody)
         }
-        Box(
-            modifier = Modifier
-                .clip(RoundedCornerShape(999.dp))
-                .background(Ink)
-                .padding(horizontal = 16.dp, vertical = 8.dp),
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
         ) {
-            Text(text = "출발", style = BodySmStrong, color = OnInk)
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier.size(36.dp),
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Delete,
+                    contentDescription = "삭제",
+                    tint = Error,
+                    modifier = Modifier.size(20.dp),
+                )
+            }
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(Ink)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(text = "출발", style = BodySmStrong, color = OnInk)
+            }
         }
     }
+}
+
+@Composable
+internal fun DeleteConfirmDialog(
+    title: String,
+    message: String,
+    onConfirm: () -> Unit,
+    onDismiss: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        containerColor = Canvas,
+        title = {
+            Text(text = title, style = BodyMdStrong, color = Ink)
+        },
+        text = {
+            Text(text = message, style = BodySm, color = TextBody)
+        },
+        confirmButton = {
+            TextButton(onClick = onConfirm) {
+                Text(text = "삭제", style = BodySmStrong, color = Error)
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(text = "취소", style = BodySm, color = TextBody)
+            }
+        },
+    )
 }

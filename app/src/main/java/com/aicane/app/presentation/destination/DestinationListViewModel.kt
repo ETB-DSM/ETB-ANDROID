@@ -30,6 +30,7 @@ class DestinationListViewModel @Inject constructor(
         val destinations: List<Destination> = emptyList(),
         val isLoading: Boolean = false,
         val errorMessage: String = "",
+        val destinationToDelete: Destination? = null,
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -51,6 +52,18 @@ class DestinationListViewModel @Inject constructor(
                     }
                 }
         }
+    }
+
+    fun confirmDelete(destination: Destination) {
+        _uiState.update { it.copy(destinationToDelete = destination) }
+    }
+
+    fun cancelDelete() {
+        _uiState.update { it.copy(destinationToDelete = null) }
+    }
+
+    fun deleteDestination() {
+        _uiState.update { it.copy(destinationToDelete = null) }
     }
 
     fun startNavigation(destinationId: String) {

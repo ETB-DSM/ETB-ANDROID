@@ -29,10 +29,13 @@ class MypageViewModel @Inject constructor(
 
     data class UiState(
         val deviceId: String = "",
+        val guardianId: String = "",
         val guardianName: String = "",
         val guardianPhone: String = "",
         val isLoading: Boolean = false,
         val errorMessage: String = "",
+        val showDeleteDeviceDialog: Boolean = false,
+        val showDeleteGuardianDialog: Boolean = false,
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -45,7 +48,7 @@ class MypageViewModel @Inject constructor(
         load()
     }
 
-    private fun load() {
+    fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = "") }
 
@@ -53,6 +56,7 @@ class MypageViewModel @Inject constructor(
             val guardianResult = getGuardiansUseCase()
 
             val deviceId      = deviceResult.getOrNull()?.firstOrNull()?.deviceId ?: ""
+            val guardianId    = guardianResult.getOrNull()?.firstOrNull()?.guardianId ?: ""
             val guardianName  = guardianResult.getOrNull()?.firstOrNull()?.name ?: ""
             val guardianPhone = guardianResult.getOrNull()?.firstOrNull()?.phone ?: ""
 
@@ -60,6 +64,7 @@ class MypageViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     deviceId      = deviceId,
+                    guardianId    = guardianId,
                     guardianName  = guardianName,
                     guardianPhone = guardianPhone,
                     isLoading     = false,
@@ -67,6 +72,19 @@ class MypageViewModel @Inject constructor(
                 )
             }
         }
+    }
+
+    fun confirmDeleteDevice()   { _uiState.update { it.copy(showDeleteDeviceDialog = true) } }
+    fun cancelDeleteDevice()    { _uiState.update { it.copy(showDeleteDeviceDialog = false) } }
+    fun confirmDeleteGuardian() { _uiState.update { it.copy(showDeleteGuardianDialog = true) } }
+    fun cancelDeleteGuardian()  { _uiState.update { it.copy(showDeleteGuardianDialog = false) } }
+
+    fun deleteDevice() {
+        _uiState.update { it.copy(showDeleteDeviceDialog = false) }
+    }
+
+    fun deleteGuardian() {
+        _uiState.update { it.copy(showDeleteGuardianDialog = false) }
     }
 
     fun logout() {
