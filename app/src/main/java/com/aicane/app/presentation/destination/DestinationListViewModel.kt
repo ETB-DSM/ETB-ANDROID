@@ -3,6 +3,7 @@ package com.aicane.app.presentation.destination
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aicane.app.domain.model.Destination
+import com.aicane.app.domain.usecase.destination.DeleteDestinationUseCase
 import com.aicane.app.domain.usecase.destination.GetDestinationsUseCase
 import com.aicane.app.domain.usecase.navigation.CreateSessionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -23,6 +24,7 @@ sealed class DestinationListEvent {
 @HiltViewModel
 class DestinationListViewModel @Inject constructor(
     private val getDestinationsUseCase: GetDestinationsUseCase,
+    private val deleteDestinationUseCase: DeleteDestinationUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
 ) : ViewModel() {
 
@@ -63,7 +65,17 @@ class DestinationListViewModel @Inject constructor(
     }
 
     fun deleteDestination() {
-        _uiState.update { it.copy(destinationToDelete = null) }
+        val target = _uiState.value.destinationToDelete ?: return
+        viewModelScope.launch {
+            _uiState.update { it.copy(destinationToDelete = null) }
+            deleteDestinationUseCase(target.destinationId)
+                .onSuccess { loadDestinations() }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(errorMessage = error.message ?: "삭제에 실패했습니다.")
+                    }
+                }
+        }
     }
 
     fun startNavigation(destinationId: String) {

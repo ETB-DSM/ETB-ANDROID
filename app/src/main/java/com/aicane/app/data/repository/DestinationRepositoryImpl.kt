@@ -28,6 +28,9 @@ class DestinationRepositoryImpl @Inject constructor(
         ).toDomain()
     }
 
+    override suspend fun deleteDestination(destinationId: String): Result<Unit> =
+        runCatching { destinationApi.deleteDestination(destinationId) }
+
     private fun DestinationResponse.toDomain() =
         Destination(destinationId, name, targetText, latitude, longitude, radius)
 }

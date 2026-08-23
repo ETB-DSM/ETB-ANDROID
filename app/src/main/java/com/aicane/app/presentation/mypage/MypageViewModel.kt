@@ -3,7 +3,9 @@ package com.aicane.app.presentation.mypage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aicane.app.domain.usecase.auth.LogoutUseCase
+import com.aicane.app.domain.usecase.device.DeleteDeviceUseCase
 import com.aicane.app.domain.usecase.device.GetDevicesUseCase
+import com.aicane.app.domain.usecase.guardian.DeleteGuardianUseCase
 import com.aicane.app.domain.usecase.guardian.GetGuardiansUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -24,6 +26,8 @@ sealed class MypageEvent {
 class MypageViewModel @Inject constructor(
     private val getDevicesUseCase: GetDevicesUseCase,
     private val getGuardiansUseCase: GetGuardiansUseCase,
+    private val deleteDeviceUseCase: DeleteDeviceUseCase,
+    private val deleteGuardianUseCase: DeleteGuardianUseCase,
     private val logoutUseCase: LogoutUseCase,
 ) : ViewModel() {
 
@@ -80,11 +84,27 @@ class MypageViewModel @Inject constructor(
     fun cancelDeleteGuardian()  { _uiState.update { it.copy(showDeleteGuardianDialog = false) } }
 
     fun deleteDevice() {
-        _uiState.update { it.copy(showDeleteDeviceDialog = false) }
+        val deviceId = _uiState.value.deviceId
+        viewModelScope.launch {
+            _uiState.update { it.copy(showDeleteDeviceDialog = false) }
+            deleteDeviceUseCase(deviceId)
+                .onSuccess { load() }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = error.message ?: "삭제에 실패했습니다.") }
+                }
+        }
     }
 
     fun deleteGuardian() {
-        _uiState.update { it.copy(showDeleteGuardianDialog = false) }
+        val guardianId = _uiState.value.guardianId
+        viewModelScope.launch {
+            _uiState.update { it.copy(showDeleteGuardianDialog = false) }
+            deleteGuardianUseCase(guardianId)
+                .onSuccess { load() }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = error.message ?: "삭제에 실패했습니다.") }
+                }
+        }
     }
 
     fun logout() {

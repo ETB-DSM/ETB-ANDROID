@@ -11,4 +11,5 @@ interface DestinationRepository {
         longitude: Double,
         radius: Double,
     ): Result<Destination>
+    suspend fun deleteDestination(destinationId: String): Result<Unit>
 }

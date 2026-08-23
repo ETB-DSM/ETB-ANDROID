@@ -23,4 +23,7 @@ class DeviceRepositoryImpl @Inject constructor(
     override suspend fun getDevices(): Result<List<Device>> = runCatching {
         deviceApi.getDevices().map { Device(it.deviceId, it.name) }
     }
+
+    override suspend fun deleteDevice(deviceId: String): Result<Unit> =
+        runCatching { deviceApi.deleteDevice(deviceId) }
 }
