@@ -2,6 +2,7 @@ package com.aicane.app.di
 
 import com.aicane.app.BuildConfig
 import com.aicane.app.data.remote.interceptor.AuthInterceptor
+import com.aicane.app.data.remote.interceptor.RetryInterceptor
 import com.aicane.app.data.remote.interceptor.TokenAuthenticator
 import com.aicane.app.di.qualifier.AppClient
 import com.aicane.app.di.qualifier.RefreshClient
@@ -45,6 +46,7 @@ object NetworkModule {
     fun provideAppOkHttpClient(
         authInterceptor: AuthInterceptor,
         tokenAuthenticator: TokenAuthenticator,
+        retryInterceptor: RetryInterceptor,
     ): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor(
             HttpLoggingInterceptor().apply {
@@ -55,6 +57,7 @@ object NetworkModule {
                 }
             }
         )
+        .addInterceptor(retryInterceptor)
         .addInterceptor(authInterceptor)
         .authenticator(tokenAuthenticator)
         .connectTimeout(10, TimeUnit.SECONDS)
