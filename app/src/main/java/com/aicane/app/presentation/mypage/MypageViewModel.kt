@@ -3,7 +3,9 @@ package com.aicane.app.presentation.mypage
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aicane.app.domain.usecase.auth.LogoutUseCase
+import com.aicane.app.domain.usecase.device.DeleteDeviceUseCase
 import com.aicane.app.domain.usecase.device.GetDevicesUseCase
+import com.aicane.app.domain.usecase.guardian.DeleteGuardianUseCase
 import com.aicane.app.domain.usecase.guardian.GetGuardiansUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -24,15 +26,20 @@ sealed class MypageEvent {
 class MypageViewModel @Inject constructor(
     private val getDevicesUseCase: GetDevicesUseCase,
     private val getGuardiansUseCase: GetGuardiansUseCase,
+    private val deleteDeviceUseCase: DeleteDeviceUseCase,
+    private val deleteGuardianUseCase: DeleteGuardianUseCase,
     private val logoutUseCase: LogoutUseCase,
 ) : ViewModel() {
 
     data class UiState(
         val deviceId: String = "",
+        val guardianId: String = "",
         val guardianName: String = "",
         val guardianPhone: String = "",
         val isLoading: Boolean = false,
         val errorMessage: String = "",
+        val showDeleteDeviceDialog: Boolean = false,
+        val showDeleteGuardianDialog: Boolean = false,
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -45,7 +52,7 @@ class MypageViewModel @Inject constructor(
         load()
     }
 
-    private fun load() {
+    fun load() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = "") }
 
@@ -53,6 +60,7 @@ class MypageViewModel @Inject constructor(
             val guardianResult = getGuardiansUseCase()
 
             val deviceId      = deviceResult.getOrNull()?.firstOrNull()?.deviceId ?: ""
+            val guardianId    = guardianResult.getOrNull()?.firstOrNull()?.guardianId ?: ""
             val guardianName  = guardianResult.getOrNull()?.firstOrNull()?.name ?: ""
             val guardianPhone = guardianResult.getOrNull()?.firstOrNull()?.phone ?: ""
 
@@ -60,12 +68,42 @@ class MypageViewModel @Inject constructor(
             _uiState.update {
                 it.copy(
                     deviceId      = deviceId,
+                    guardianId    = guardianId,
                     guardianName  = guardianName,
                     guardianPhone = guardianPhone,
                     isLoading     = false,
                     errorMessage  = if (error != null) "정보를 불러오지 못했습니다." else "",
                 )
             }
+        }
+    }
+
+    fun confirmDeleteDevice()   { _uiState.update { it.copy(showDeleteDeviceDialog = true) } }
+    fun cancelDeleteDevice()    { _uiState.update { it.copy(showDeleteDeviceDialog = false) } }
+    fun confirmDeleteGuardian() { _uiState.update { it.copy(showDeleteGuardianDialog = true) } }
+    fun cancelDeleteGuardian()  { _uiState.update { it.copy(showDeleteGuardianDialog = false) } }
+
+    fun deleteDevice() {
+        val deviceId = _uiState.value.deviceId
+        viewModelScope.launch {
+            _uiState.update { it.copy(showDeleteDeviceDialog = false) }
+            deleteDeviceUseCase(deviceId)
+                .onSuccess { load() }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = error.message ?: "삭제에 실패했습니다.") }
+                }
+        }
+    }
+
+    fun deleteGuardian() {
+        val guardianId = _uiState.value.guardianId
+        viewModelScope.launch {
+            _uiState.update { it.copy(showDeleteGuardianDialog = false) }
+            deleteGuardianUseCase(guardianId)
+                .onSuccess { load() }
+                .onFailure { error ->
+                    _uiState.update { it.copy(errorMessage = error.message ?: "삭제에 실패했습니다.") }
+                }
         }
     }
 

@@ -21,4 +21,7 @@ class GuardianRepositoryImpl @Inject constructor(
     override suspend fun getGuardians(): Result<List<Guardian>> = runCatching {
         guardianApi.getGuardians().map { Guardian(it.guardianId, it.name, it.phone) }
     }
+
+    override suspend fun deleteGuardian(guardianId: String): Result<Unit> =
+        runCatching { guardianApi.deleteGuardian(guardianId) }
 }

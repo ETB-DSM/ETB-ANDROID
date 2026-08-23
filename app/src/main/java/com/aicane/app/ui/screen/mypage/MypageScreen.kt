@@ -1,6 +1,7 @@
 package com.aicane.app.ui.screen.mypage
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -21,6 +22,7 @@ import com.aicane.app.presentation.mypage.MypageViewModel
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.PillButtonVariant
+import com.aicane.app.ui.screen.destination.DeleteConfirmDialog
 import com.aicane.app.ui.theme.*
 
 @Composable
@@ -29,6 +31,24 @@ fun MypageScreen(
     viewModel: MypageViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
+
+    if (uiState.showDeleteDeviceDialog) {
+        DeleteConfirmDialog(
+            title = "기기를 삭제할까요?",
+            message = "삭제한 기기는 복구할 수 없어요.",
+            onConfirm = { viewModel.deleteDevice() },
+            onDismiss = { viewModel.cancelDeleteDevice() },
+        )
+    }
+
+    if (uiState.showDeleteGuardianDialog) {
+        DeleteConfirmDialog(
+            title = "보호자를 삭제할까요?",
+            message = "삭제한 보호자는 복구할 수 없어요.",
+            onConfirm = { viewModel.deleteGuardian() },
+            onDismiss = { viewModel.cancelDeleteGuardian() },
+        )
+    }
 
     Column(
         modifier = Modifier
@@ -79,21 +99,23 @@ fun MypageScreen(
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
             if (uiState.isLoading) {
-                Box(
-                    modifier = Modifier.fillMaxWidth(),
-                    contentAlignment = Alignment.Center,
-                ) {
+                Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
                     CircularProgressIndicator(color = Ink)
                 }
             } else {
-                SectionCard(title = "등록된 기기") {
-                    InfoRow(
-                        label = "기기 ID",
-                        value = uiState.deviceId.ifEmpty { "-" },
-                    )
+                DeletableSectionCard(
+                    title = "등록된 기기",
+                    showDelete = uiState.deviceId.isNotEmpty(),
+                    onDelete = { viewModel.confirmDeleteDevice() },
+                ) {
+                    InfoRow(label = "기기 ID", value = uiState.deviceId.ifEmpty { "-" })
                 }
 
-                SectionCard(title = "보호자 정보") {
+                DeletableSectionCard(
+                    title = "보호자 정보",
+                    showDelete = uiState.guardianId.isNotEmpty(),
+                    onDelete = { viewModel.confirmDeleteGuardian() },
+                ) {
                     InfoRow(label = "이름", value = uiState.guardianName.ifEmpty { "-" })
                     InfoRow(label = "전화번호", value = uiState.guardianPhone.ifEmpty { "-" })
                 }
@@ -115,7 +137,12 @@ fun MypageScreen(
 }
 
 @Composable
-private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+private fun DeletableSectionCard(
+    title: String,
+    showDelete: Boolean,
+    onDelete: () -> Unit,
+    content: @Composable ColumnScope.() -> Unit,
+) {
     Column(
         modifier = Modifier
             .fillMaxWidth()
@@ -124,7 +151,21 @@ private fun SectionCard(title: String, content: @Composable ColumnScope.() -> Un
             .padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Text(text = title, style = BodySmStrong, color = TextBody)
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(text = title, style = BodySmStrong, color = TextBody)
+            if (showDelete) {
+                Text(
+                    text = "삭제",
+                    style = BodySm,
+                    color = Error,
+                    modifier = Modifier.clickable { onDelete() },
+                )
+            }
+        }
         content()
     }
 }
