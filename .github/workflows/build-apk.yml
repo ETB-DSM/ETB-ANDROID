@@ -24,7 +24,10 @@ jobs:
           cache: gradle
 
       - name: Set up Android SDK path
-        run: echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+        run: |
+          echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
+          echo "TMAP_API_KEY=${{ secrets.TMAP_API_KEY }}" >> local.properties
+          echo "GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}" >> local.properties
 
       - name: Make gradlew executable
         run: chmod +x gradlew
