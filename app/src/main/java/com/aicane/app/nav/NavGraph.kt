@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.aicane.app.presentation.app.AppViewModel
 import com.aicane.app.presentation.auth.LoginEvent
 import com.aicane.app.presentation.auth.LoginViewModel
 import com.aicane.app.presentation.auth.SignupEvent
@@ -45,6 +46,14 @@ import com.aicane.app.ui.screen.setup.GuardianScreen
 fun NavGraph(
     navController: NavHostController = rememberNavController(),
 ) {
+    val appViewModel: AppViewModel = hiltViewModel()
+    LaunchedEffect(appViewModel) {
+        appViewModel.sessionExpiredFlow.collect {
+            navController.navigate(Screen.Login.route) {
+                popUpTo(0) { inclusive = true }
+            }
+        }
+    }
     NavHost(
         navController = navController,
         startDestination = Screen.Splash.route,

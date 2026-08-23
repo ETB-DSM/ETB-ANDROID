@@ -2,6 +2,7 @@ package com.aicane.app.data.remote.interceptor
 
 import com.aicane.app.BuildConfig
 import com.aicane.app.data.local.TokenStorage
+import com.aicane.app.data.remote.auth.AuthEventBus
 import com.aicane.app.di.qualifier.RefreshClient
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
@@ -18,6 +19,7 @@ import javax.inject.Singleton
 @Singleton
 class TokenAuthenticator @Inject constructor(
     private val tokenStorage: TokenStorage,
+    private val authEventBus: AuthEventBus,
     @RefreshClient private val refreshClient: OkHttpClient,
     private val json: Json,
 ) : okhttp3.Authenticator {
@@ -39,6 +41,7 @@ class TokenAuthenticator @Inject constructor(
             val newTokens = runCatching { callRefreshApi(refreshToken) }.getOrNull()
                 ?: run {
                     tokenStorage.clearAll()
+                    authEventBus.notifySessionExpired()
                     return null
                 }
 
