@@ -28,6 +28,7 @@ jobs:
           echo "sdk.dir=$ANDROID_SDK_ROOT" > local.properties
           echo "TMAP_API_KEY=${{ secrets.TMAP_API_KEY }}" >> local.properties
           echo "GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}" >> local.properties
+          echo "BASE_URL=${{ secrets.BASE_URL }}" >> local.properties
 
       - name: Make gradlew executable
         run: chmod +x gradlew
