@@ -2,6 +2,7 @@ package com.aicane.app.data.repository
 
 import com.aicane.app.data.local.TokenStorage
 import com.aicane.app.data.remote.api.AuthApi
+import com.aicane.app.data.remote.dto.auth.GoogleLoginRequest
 import com.aicane.app.data.remote.dto.auth.LoginRequest
 import com.aicane.app.data.remote.dto.auth.SignupRequest
 import com.aicane.app.data.remote.dto.auth.VerifyEmailRequest
@@ -24,6 +25,15 @@ class AuthRepositoryImpl @Inject constructor(
     override suspend fun login(email: String, password: String): Result<Boolean> =
         runCatching {
             val response = authApi.login(LoginRequest(email, password))
+            tokenStorage.accessToken  = response.accessToken
+            tokenStorage.refreshToken = response.refreshToken
+            tokenStorage.userId       = response.userId
+            tokenStorage.deviceId == null
+        }
+
+    override suspend fun loginWithGoogle(idToken: String): Result<Boolean> =
+        runCatching {
+            val response = authApi.loginWithGoogle(GoogleLoginRequest(idToken))
             tokenStorage.accessToken  = response.accessToken
             tokenStorage.refreshToken = response.refreshToken
             tokenStorage.userId       = response.userId

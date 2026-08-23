@@ -1,5 +1,6 @@
 package com.aicane.app.data.remote.api
 
+import com.aicane.app.data.remote.dto.auth.GoogleLoginRequest
 import com.aicane.app.data.remote.dto.auth.LoginRequest
 import com.aicane.app.data.remote.dto.auth.LoginResponse
 import com.aicane.app.data.remote.dto.auth.SignupRequest
@@ -16,6 +17,9 @@ interface AuthApi {
 
     @POST("api/v1/auth/login")
     suspend fun login(@Body request: LoginRequest): LoginResponse
+
+    @POST("api/v1/auth/login/google")
+    suspend fun loginWithGoogle(@Body request: GoogleLoginRequest): LoginResponse
 
     @POST("api/v1/auth/logout")
     suspend fun logout()

@@ -7,25 +7,57 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.BuildConfig
 import com.aicane.app.presentation.auth.LoginViewModel
 import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.PillButtonVariant
 import com.aicane.app.ui.theme.*
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 @Composable
 fun LoginScreen(
     onNavigateToSignup: () -> Unit,
     viewModel: LoginViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = remember { CredentialManager.create(context) }
+
     var email by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
 
     val uiState by viewModel.uiState.collectAsState()
+
+    val launchGoogleSignIn: () -> Unit = {
+        coroutineScope.launch {
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val result = credentialManager.getCredential(context, request)
+                val googleIdTokenCredential =
+                    GoogleIdTokenCredential.createFrom(result.credential.data)
+                viewModel.loginWithGoogle(googleIdTokenCredential.idToken)
+            } catch (e: GetCredentialException) {
+                viewModel.setError("구글 로그인에 실패했습니다.")
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -88,8 +120,10 @@ fun LoginScreen(
 
         FullWidthPillButton(
             text = "Google로 로그인",
-            onClick = { /* Google Sign-In SDK 연동 예정 */ },
+            onClick = launchGoogleSignIn,
             variant = PillButtonVariant.Secondary,
+            isLoading = uiState.isLoading,
+            enabled = !uiState.isLoading,
         )
 
         Spacer(Modifier.height(24.dp))

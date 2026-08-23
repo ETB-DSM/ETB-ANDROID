@@ -25,7 +25,8 @@ android {
         versionName = "1.0.0"
 
         buildConfigField("String", "BASE_URL", "\"https://api.aicane.io/\"")
-        buildConfigField("String", "TMAP_API_KEY", "\"${localProperties.getProperty("TMAP_API_KEY", "")}\"" )
+        buildConfigField("String", "TMAP_API_KEY", "\"${localProperties.getProperty("TMAP_API_KEY", "")}\"")
+        buildConfigField("String", "GOOGLE_WEB_CLIENT_ID", "\"${localProperties.getProperty("GOOGLE_WEB_CLIENT_ID", "")}\"")
     }
 
     buildTypes {
@@ -80,4 +81,7 @@ dependencies {
     implementation(libs.splashscreen)
     implementation(libs.security.crypto)
     implementation(libs.play.services.location)
+    implementation(libs.credentials)
+    implementation(libs.credentials.play.services.auth)
+    implementation(libs.googleid)
 }

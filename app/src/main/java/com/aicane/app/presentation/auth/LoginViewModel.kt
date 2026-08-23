@@ -3,6 +3,7 @@ package com.aicane.app.presentation.auth
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aicane.app.domain.usecase.auth.LoginUseCase
+import com.aicane.app.domain.usecase.auth.LoginWithGoogleUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
@@ -21,6 +22,7 @@ sealed class LoginEvent {
 @HiltViewModel
 class LoginViewModel @Inject constructor(
     private val loginUseCase: LoginUseCase,
+    private val loginWithGoogleUseCase: LoginWithGoogleUseCase,
 ) : ViewModel() {
 
     data class UiState(
@@ -43,6 +45,23 @@ class LoginViewModel @Inject constructor(
                     _uiState.update { it.copy(isLoading = false, errorMessage = error.message ?: "로그인에 실패했습니다.") }
                 }
         }
+    }
+
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = "") }
+            loginWithGoogleUseCase(idToken)
+                .onSuccess { isFirst -> _events.send(LoginEvent.NavigateAfterLogin(isFirst)) }
+                .onFailure { error ->
+                    _uiState.update {
+                        it.copy(isLoading = false, errorMessage = error.message ?: "구글 로그인에 실패했습니다.")
+                    }
+                }
+        }
+    }
+
+    fun setError(message: String) {
+        _uiState.update { it.copy(isLoading = false, errorMessage = message) }
     }
 
     fun clearError() = _uiState.update { it.copy(errorMessage = "") }
