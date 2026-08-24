@@ -30,6 +30,11 @@ jobs:
           echo "GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }}" >> local.properties
           echo "BASE_URL=${{ secrets.BASE_URL }}" >> local.properties
 
+      - name: Restore debug keystore
+        run: |
+          mkdir -p ~/.android
+          echo "${{ secrets.DEBUG_KEYSTORE_BASE64 }}" | base64 -d > ~/.android/debug.keystore
+
       - name: Make gradlew executable
         run: chmod +x gradlew
 
