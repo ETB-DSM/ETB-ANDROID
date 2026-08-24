@@ -17,6 +17,18 @@ android {
     namespace = "com.aicane.app"
     compileSdk = 35
 
+    signingConfigs {
+        getByName("debug") {
+            val keystorePath = localProperties.getProperty("KEYSTORE_PATH")
+            if (keystorePath != null && file(keystorePath).exists()) {
+                storeFile = file(keystorePath)
+                storePassword = localProperties.getProperty("KEYSTORE_PASSWORD", "android")
+                keyAlias = localProperties.getProperty("KEY_ALIAS", "androiddebugkey")
+                keyPassword = localProperties.getProperty("KEY_PASSWORD", "android")
+            }
+        }
+    }
+
     defaultConfig {
         applicationId = "com.aicane.app"
         minSdk = 26
@@ -31,6 +43,9 @@ android {
     }
 
     buildTypes {
+        debug {
+            signingConfig = signingConfigs.getByName("debug")
+        }
         release {
             isMinifyEnabled = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
