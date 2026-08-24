@@ -155,6 +155,16 @@ fun SearchScreen(
                     Text(text = "검색 중...", style = BodyMd, color = TextMute)
                 }
             }
+            uiState.errorMessage.isNotEmpty() -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = uiState.errorMessage, style = BodyMd, color = TextMute)
+                }
+            }
             uiState.results.isEmpty() -> {
                 Box(
                     modifier = Modifier
