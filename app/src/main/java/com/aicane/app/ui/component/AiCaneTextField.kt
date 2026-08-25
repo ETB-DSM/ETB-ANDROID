@@ -31,6 +31,7 @@ fun AiCaneTextField(
     errorMessage: String = "",
     caption: String = "",
     enabled: Boolean = true,
+    compact: Boolean = false,
 ) {
     val shape = RoundedCornerShape(8.dp)
     val borderColor = when {
@@ -58,7 +59,7 @@ fun AiCaneTextField(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(64.dp)
+                        .height(if (compact) 56.dp else 64.dp)
                         .clip(shape)
                         .background(bgColor)
                         .border(1.dp, borderColor, shape)
