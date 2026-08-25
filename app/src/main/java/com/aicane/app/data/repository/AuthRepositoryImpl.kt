@@ -17,7 +17,11 @@ class AuthRepositoryImpl @Inject constructor(
 ) : AuthRepository {
 
     override suspend fun signup(email: String, name: String, password: String): Result<Unit> =
-        runCatching { authApi.signup(SignupRequest(email, name, password)) }
+        runCatching {
+            authApi.signup(SignupRequest(email, name, password))
+            tokenStorage.userName  = name
+            tokenStorage.userEmail = email
+        }
 
     override suspend fun verifyEmail(email: String, code: String): Result<Unit> =
         runCatching { authApi.verifyEmail(VerifyEmailRequest(email, code)) }
@@ -28,6 +32,7 @@ class AuthRepositoryImpl @Inject constructor(
             tokenStorage.accessToken  = response.accessToken
             tokenStorage.refreshToken = response.refreshToken
             tokenStorage.userId       = response.userId
+            tokenStorage.userEmail    = email
             tokenStorage.deviceId == null
         }
 
@@ -44,4 +49,7 @@ class AuthRepositoryImpl @Inject constructor(
         runCatching { authApi.logout() }
         tokenStorage.clearAll()
     }
+
+    override fun getUserInfo(): Pair<String, String> =
+        Pair(tokenStorage.userName ?: "", tokenStorage.userEmail ?: "")
 }
