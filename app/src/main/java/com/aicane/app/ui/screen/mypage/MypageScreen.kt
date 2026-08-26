@@ -1,21 +1,20 @@
 package com.aicane.app.ui.screen.mypage
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.mypage.MypageViewModel
@@ -61,33 +60,63 @@ fun MypageScreen(
                 .fillMaxWidth()
                 .background(Ink)
                 .statusBarsPadding()
-                .padding(bottom = 32.dp),
+                .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 30.dp),
         ) {
-            BackButton(
-                onClick = onBack,
-                isDark = true,
-                modifier = Modifier.padding(start = 16.dp, top = 16.dp),
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
+                // 뒤로 버튼 + 타이틀
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BackButton(onClick = onBack, isDark = true)
+                    Spacer(Modifier.width(14.dp))
+                    Text(text = "마이페이지", style = BodyMdStrong, color = TextMute)
+                }
 
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 24.dp),
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(60.dp)
-                        .clip(CircleShape)
-                        .background(InkElevated),
-                    contentAlignment = Alignment.Center,
+                // 이니셜 원 + 이름/이메일
+                val initial = uiState.userName.trim().firstOrNull()?.toString() ?: "?"
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Person,
-                        contentDescription = null,
-                        tint = OnInk,
-                        modifier = Modifier.size(32.dp),
-                    )
+                    Box(
+                        modifier = Modifier
+                            .size(60.dp)
+                            .clip(CircleShape)
+                            .background(InkElevated)
+                            .border(3.dp, OnInk, CircleShape),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(text = initial, style = DisplaySm, color = OnInk)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        Text(
+                            text = uiState.userName.ifEmpty { "사용자" },
+                            style = DisplayMd,
+                            color = OnInk,
+                            maxLines = 1,
+                        )
+                        Text(
+                            text = uiState.userEmail,
+                            style = BodySm,
+                            color = TextMute,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
+
+                // Status chips
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val deviceChip = if (uiState.deviceId.isNotEmpty()) "지팡이 연결됨" else "지팡이 미연결"
+                    val guardChip  = if (uiState.guardianName.isNotEmpty()) "보호자 ${uiState.guardianName}" else "보호자 미등록"
+                    listOf(deviceChip, guardChip).forEach { label ->
+                        Box(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(InkElevated)
+                                .padding(horizontal = 16.dp, vertical = 9.dp),
+                        ) {
+                            Text(text = label, style = BodySmStrong, color = OnInk)
+                        }
+                    }
                 }
             }
         }

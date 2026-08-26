@@ -2,6 +2,7 @@ package com.aicane.app.presentation.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aicane.app.domain.usecase.auth.GetUserInfoUseCase
 import com.aicane.app.domain.usecase.auth.LogoutUseCase
 import com.aicane.app.domain.usecase.device.DeleteDeviceUseCase
 import com.aicane.app.domain.usecase.device.GetDevicesUseCase
@@ -29,9 +30,12 @@ class MypageViewModel @Inject constructor(
     private val deleteDeviceUseCase: DeleteDeviceUseCase,
     private val deleteGuardianUseCase: DeleteGuardianUseCase,
     private val logoutUseCase: LogoutUseCase,
+    private val getUserInfoUseCase: GetUserInfoUseCase,
 ) : ViewModel() {
 
     data class UiState(
+        val userName: String = "",
+        val userEmail: String = "",
         val deviceId: String = "",
         val guardianId: String = "",
         val guardianName: String = "",
@@ -53,8 +57,9 @@ class MypageViewModel @Inject constructor(
     }
 
     fun load() {
+        val (name, email) = getUserInfoUseCase()
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, errorMessage = "") }
+            _uiState.update { it.copy(isLoading = true, errorMessage = "", userName = name, userEmail = email) }
 
             val deviceResult   = getDevicesUseCase()
             val guardianResult = getGuardiansUseCase()
