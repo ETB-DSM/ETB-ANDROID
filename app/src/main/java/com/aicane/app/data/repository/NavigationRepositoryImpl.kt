@@ -34,8 +34,10 @@ class NavigationRepositoryImpl @Inject constructor(
     ): Result<List<RouteStep>> = runCatching {
         val response = tmapPedestrianApi.getPedestrianRoute(
             request = TmapPedestrianRequest(
-                startX = startLng.toString(), startY = startLat.toString(),
-                endX   = endLng.toString(),   endY   = endLat.toString(),
+                startX    = startLng, startY = startLat,
+                endX      = endLng,   endY   = endLat,
+                startName = java.net.URLEncoder.encode("출발지", "UTF-8"),
+                endName   = java.net.URLEncoder.encode("목적지", "UTF-8"),
             )
         )
         response.features
