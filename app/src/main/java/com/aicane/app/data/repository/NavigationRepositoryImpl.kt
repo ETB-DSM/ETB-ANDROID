@@ -40,25 +40,44 @@ class NavigationRepositoryImpl @Inject constructor(
                 endName   = java.net.URLEncoder.encode("목적지", "UTF-8"),
             )
         )
-        response.features
-            .filter { it.geometry.type == "Point" }
-            .map { feature ->
-                val coords = feature.geometry.coordinates.jsonArray
-                val longitude = coords[0].jsonPrimitive.double
-                val latitude  = coords[1].jsonPrimitive.double
-                val turnType = when (feature.properties.turnType) {
-                    12, 16, 18, 212 -> TurnType.LEFT
-                    13, 17, 19, 213 -> TurnType.RIGHT
-                    else            -> TurnType.STRAIGHT
+        response.features.flatMap { feature ->
+            when (feature.geometry.type) {
+                "Point" -> {
+                    val coords = feature.geometry.coordinates.jsonArray
+                    val longitude = coords[0].jsonPrimitive.double
+                    val latitude  = coords[1].jsonPrimitive.double
+                    val turnType = when (feature.properties.turnType) {
+                        12, 16, 18, 212 -> TurnType.LEFT
+                        13, 17, 19, 213 -> TurnType.RIGHT
+                        else            -> TurnType.STRAIGHT
+                    }
+                    listOf(
+                        RouteStep(
+                            latitude       = latitude,
+                            longitude      = longitude,
+                            distanceMeters = feature.properties.distance,
+                            turnType       = turnType,
+                            description    = feature.properties.description,
+                        )
+                    )
                 }
-                RouteStep(
-                    latitude      = latitude,
-                    longitude     = longitude,
-                    distanceMeters = feature.properties.distance,
-                    turnType      = turnType,
-                    description   = feature.properties.description,
-                )
+                "LineString" -> {
+                    feature.geometry.coordinates.jsonArray.map { pair ->
+                        val point     = pair.jsonArray
+                        val longitude = point[0].jsonPrimitive.double
+                        val latitude  = point[1].jsonPrimitive.double
+                        RouteStep(
+                            latitude       = latitude,
+                            longitude      = longitude,
+                            distanceMeters = feature.properties.distance,
+                            turnType       = TurnType.STRAIGHT,
+                            description    = feature.properties.description,
+                        )
+                    }
+                }
+                else -> emptyList()
             }
+        }
     }
 
     override suspend fun createInstruction(
