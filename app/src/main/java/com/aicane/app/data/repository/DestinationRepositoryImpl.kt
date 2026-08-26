@@ -24,7 +24,7 @@ class DestinationRepositoryImpl @Inject constructor(
         radius: Double,
     ): Result<Destination> = runCatching {
         destinationApi.createDestination(
-            CreateDestinationRequest(name, targetText, latitude, longitude, radius)
+            CreateDestinationRequest(name, targetText, latitude, longitude, radius.toInt())
         ).toDomain()
     }
 

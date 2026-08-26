@@ -9,5 +9,5 @@ data class CreateDestinationRequest(
     val targetText: String,
     val latitude: Double,
     val longitude: Double,
-    @SerialName("radiusM") val radius: Double,
+    @SerialName("radiusM") val radius: Int,
 )
