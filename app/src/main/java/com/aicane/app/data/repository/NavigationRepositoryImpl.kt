@@ -69,7 +69,7 @@ class NavigationRepositoryImpl @Inject constructor(
     ): Result<Unit> = runCatching {
         navigationApi.createInstruction(
             sessionId = sessionId,
-            request   = CreateInstructionRequest(action.name.lowercase(), distanceMeters, message),
+            request   = CreateInstructionRequest(action.name.lowercase(), distanceMeters.toInt(), message),
         )
     }
 

@@ -5,6 +5,6 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class CreateInstructionRequest(
     val action: String,
-    val distanceMeters: Double,
+    val distanceMeters: Int,
     val message: String,
 )
