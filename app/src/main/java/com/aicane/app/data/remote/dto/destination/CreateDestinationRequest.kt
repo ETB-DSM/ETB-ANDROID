@@ -1,5 +1,6 @@
 package com.aicane.app.data.remote.dto.destination
 
+import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -8,5 +9,5 @@ data class CreateDestinationRequest(
     val targetText: String,
     val latitude: Double,
     val longitude: Double,
-    val radius: Double,
+    @SerialName("radiusM") val radius: Double,
 )
