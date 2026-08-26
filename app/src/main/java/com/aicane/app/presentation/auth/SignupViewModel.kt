@@ -2,6 +2,7 @@ package com.aicane.app.presentation.auth
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aicane.app.domain.usecase.auth.LoginWithGoogleUseCase
 import com.aicane.app.domain.usecase.auth.SignupUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.channels.Channel
@@ -16,11 +17,13 @@ import javax.inject.Inject
 
 sealed class SignupEvent {
     data class NavigateToVerify(val email: String) : SignupEvent()
+    object NavigateComplete : SignupEvent()
 }
 
 @HiltViewModel
 class SignupViewModel @Inject constructor(
     private val signupUseCase: SignupUseCase,
+    private val loginWithGoogleUseCase: LoginWithGoogleUseCase,
 ) : ViewModel() {
 
     data class UiState(
@@ -45,5 +48,20 @@ class SignupViewModel @Inject constructor(
         }
     }
 
+    fun setError(message: String) {
+        _uiState.update { it.copy(isLoading = false, errorMessage = message) }
+    }
+
     fun clearError() = _uiState.update { it.copy(errorMessage = "") }
+
+    fun loginWithGoogle(idToken: String) {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, errorMessage = "") }
+            loginWithGoogleUseCase(idToken)
+                .onSuccess { _events.send(SignupEvent.NavigateComplete) }
+                .onFailure { error ->
+                    _uiState.update { it.copy(isLoading = false, errorMessage = error.message ?: "구글 로그인에 실패했습니다.") }
+                }
+        }
+    }
 }

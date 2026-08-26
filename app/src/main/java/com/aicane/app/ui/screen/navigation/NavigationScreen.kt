@@ -4,8 +4,10 @@ import android.Manifest
 import android.content.pm.PackageManager
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
@@ -89,13 +91,30 @@ fun NavigationScreen(
                         )
                         Spacer(Modifier.height(16.dp))
                     }
-                    Box(
+                    val pulseAlpha by rememberInfiniteTransition(label = "pulse").animateFloat(
+                        initialValue = 0.25f,
+                        targetValue = 1f,
+                        animationSpec = infiniteRepeatable(
+                            tween(550, easing = EaseInOut),
+                            RepeatMode.Reverse,
+                        ),
+                        label = "pulseA",
+                    )
+                    Row(
                         modifier = Modifier
                             .clip(RoundedCornerShape(999.dp))
-                            .background(OnInk.copy(alpha = 0.15f))
-                            .padding(horizontal = 14.dp, vertical = 6.dp),
+                            .background(InkElevated)
+                            .padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Text(text = "진동으로 알림", style = Caption, color = OnInk.copy(alpha = 0.8f))
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(OnInk.copy(alpha = pulseAlpha)),
+                        )
+                        Text(text = "진동으로 알림", style = Caption, color = OnInk)
                     }
                 }
 

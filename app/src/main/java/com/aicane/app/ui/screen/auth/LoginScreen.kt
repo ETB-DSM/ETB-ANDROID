@@ -1,15 +1,18 @@
 package com.aicane.app.ui.screen.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.credentials.CredentialManager
 import androidx.credentials.GetCredentialRequest
@@ -68,46 +71,53 @@ fun LoginScreen(
             .padding(horizontal = 24.dp),
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(
-            text = "AI Cane",
-            style = DisplayXL,
-            color = Ink,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-
-        Spacer(Modifier.height(8.dp))
-
-        Text(
-            text = "시각 장애인을 위한 스마트 지팡이",
-            style = BodyMd,
-            color = TextMute,
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-        )
-
-        Spacer(Modifier.height(48.dp))
-
-        AiCaneTextField(
-            value = email,
-            onValueChange = { email = it; viewModel.clearError() },
-            label = "이메일",
-            placeholder = "example@email.com",
-            keyboardType = KeyboardType.Email,
-            isError = uiState.errorMessage.isNotEmpty(),
-        )
-
-        Spacer(Modifier.height(16.dp))
-
-        AiCaneTextField(
-            value = password,
-            onValueChange = { password = it; viewModel.clearError() },
-            label = "비밀번호",
-            placeholder = "비밀번호를 입력하세요",
-            isPassword = true,
-            isError = uiState.errorMessage.isNotEmpty(),
-            errorMessage = uiState.errorMessage,
-        )
+        // 링 아이콘 + 타이틀
+        Column(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .border(5.dp, Ink, CircleShape),
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(text = "AI-Cane", style = DisplayLg, color = Ink)
+        }
 
         Spacer(Modifier.height(32.dp))
+
+        // 입력 카드
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .clip(RoundedCornerShape(16.dp))
+                .background(CanvasSoft)
+                .padding(24.dp),
+            verticalArrangement = Arrangement.spacedBy(18.dp),
+        ) {
+            AiCaneTextField(
+                value = email,
+                onValueChange = { email = it; viewModel.clearError() },
+                label = "이메일",
+                placeholder = "name@example.com",
+                keyboardType = KeyboardType.Email,
+                isError = uiState.errorMessage.isNotEmpty(),
+                compact = true,
+            )
+            AiCaneTextField(
+                value = password,
+                onValueChange = { password = it; viewModel.clearError() },
+                label = "비밀번호",
+                placeholder = "비밀번호",
+                isPassword = true,
+                isError = uiState.errorMessage.isNotEmpty(),
+                errorMessage = uiState.errorMessage,
+                compact = true,
+            )
+        }
+
+        Spacer(Modifier.height(16.dp))
 
         FullWidthPillButton(
             text = "로그인",
@@ -115,6 +125,19 @@ fun LoginScreen(
             isLoading = uiState.isLoading,
             enabled = email.isNotBlank() && password.isNotBlank() && !uiState.isLoading,
         )
+
+        Spacer(Modifier.height(16.dp))
+
+        // 구분선
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(12.dp),
+        ) {
+            Box(modifier = Modifier.weight(1f).height(1.dp).background(SurfacePressed))
+            Text(text = "또는", style = BodySm, color = TextMute)
+            Box(modifier = Modifier.weight(1f).height(1.dp).background(SurfacePressed))
+        }
 
         Spacer(Modifier.height(16.dp))
 
@@ -128,18 +151,13 @@ fun LoginScreen(
 
         Spacer(Modifier.height(24.dp))
 
-        Row(
-            modifier = Modifier.align(Alignment.CenterHorizontally),
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-        ) {
-            Text(text = "계정이 없으신가요?", style = BodySm, color = TextBody)
-            Text(
-                text = "회원가입",
-                style = BodySmStrong,
-                color = Ink,
-                textDecoration = TextDecoration.Underline,
-                modifier = Modifier.clickable { onNavigateToSignup() },
-            )
-        }
+        Text(
+            text = "계정이 없으신가요? 회원가입",
+            style = BodyMd,
+            color = LinkBlue,
+            modifier = Modifier
+                .align(Alignment.CenterHorizontally)
+                .clickable { onNavigateToSignup() },
+        )
     }
 }

@@ -7,15 +7,24 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.credentials.CredentialManager
+import androidx.credentials.GetCredentialRequest
+import androidx.credentials.exceptions.GetCredentialException
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.BuildConfig
 import com.aicane.app.presentation.auth.SignupViewModel
 import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
+import com.aicane.app.ui.component.PillButtonVariant
 import com.aicane.app.ui.component.StepIndicator
 import com.aicane.app.ui.theme.*
+import com.google.android.libraries.identity.googleid.GetGoogleIdOption
+import com.google.android.libraries.identity.googleid.GoogleIdTokenCredential
+import kotlinx.coroutines.launch
 
 private enum class SignupStep { Email, Name, Password }
 
@@ -24,13 +33,38 @@ fun SignupScreen(
     onBack: () -> Unit,
     viewModel: SignupViewModel = hiltViewModel(),
 ) {
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    val credentialManager = remember { CredentialManager.create(context) }
+
     var step by remember { mutableStateOf(SignupStep.Email) }
     var email by remember { mutableStateOf("") }
     var name by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    var passwordConfirm by remember { mutableStateOf("") }
 
     val uiState by viewModel.uiState.collectAsState()
     val currentStep = step.ordinal + 1
+
+    val launchGoogleSignIn: () -> Unit = {
+        coroutineScope.launch {
+            try {
+                val googleIdOption = GetGoogleIdOption.Builder()
+                    .setFilterByAuthorizedAccounts(false)
+                    .setServerClientId(BuildConfig.GOOGLE_WEB_CLIENT_ID)
+                    .build()
+                val request = GetCredentialRequest.Builder()
+                    .addCredentialOption(googleIdOption)
+                    .build()
+                val result = credentialManager.getCredential(context, request)
+                val googleIdTokenCredential =
+                    GoogleIdTokenCredential.createFrom(result.credential.data)
+                viewModel.loginWithGoogle(googleIdTokenCredential.idToken)
+            } catch (e: GetCredentialException) {
+                viewModel.setError("구글 로그인에 실패했습니다.")
+            }
+        }
+    }
 
     Column(
         modifier = Modifier
@@ -91,6 +125,24 @@ fun SignupScreen(
                             isError = uiState.errorMessage.isNotEmpty(),
                             errorMessage = uiState.errorMessage,
                         )
+                        Spacer(Modifier.height(16.dp))
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(12.dp),
+                        ) {
+                            Box(modifier = Modifier.weight(1f).height(1.dp).background(SurfacePressed))
+                            Text(text = "또는", style = BodySm, color = TextMute)
+                            Box(modifier = Modifier.weight(1f).height(1.dp).background(SurfacePressed))
+                        }
+                        Spacer(Modifier.height(16.dp))
+                        FullWidthPillButton(
+                            text = "Google로 가입하기",
+                            onClick = launchGoogleSignIn,
+                            variant = PillButtonVariant.Secondary,
+                            enabled = !uiState.isLoading,
+                            isLoading = uiState.isLoading,
+                        )
                     }
                     SignupStep.Name -> {
                         Text(text = "이름", style = DisplayMd, color = Ink)
@@ -108,6 +160,7 @@ fun SignupScreen(
                             placeholder = "이름을 입력하세요",
                             isError = uiState.errorMessage.isNotEmpty(),
                             errorMessage = uiState.errorMessage,
+                            caption = "실명을 입력해주세요. 보호자에게 표시됩니다.",
                         )
                     }
                     SignupStep.Password -> {
@@ -126,7 +179,21 @@ fun SignupScreen(
                             placeholder = "8자 이상 입력",
                             isPassword = true,
                             isError = uiState.errorMessage.isNotEmpty(),
-                            errorMessage = uiState.errorMessage,
+                        )
+                        Spacer(Modifier.height(12.dp))
+                        AiCaneTextField(
+                            value = passwordConfirm,
+                            onValueChange = { passwordConfirm = it; viewModel.clearError() },
+                            label = "비밀번호 확인",
+                            placeholder = "비밀번호를 다시 입력하세요",
+                            isPassword = true,
+                            isError = uiState.errorMessage.isNotEmpty() ||
+                                    (passwordConfirm.isNotEmpty() && password != passwordConfirm),
+                            errorMessage = when {
+                                uiState.errorMessage.isNotEmpty() -> uiState.errorMessage
+                                passwordConfirm.isNotEmpty() && password != passwordConfirm -> "비밀번호가 일치하지 않습니다."
+                                else -> ""
+                            },
                         )
                     }
                 }
@@ -152,7 +219,7 @@ fun SignupScreen(
             enabled = when (step) {
                 SignupStep.Email    -> email.isNotBlank()
                 SignupStep.Name     -> name.isNotBlank()
-                SignupStep.Password -> password.length >= 8 && !uiState.isLoading
+                SignupStep.Password -> password.length >= 8 && password == passwordConfirm && !uiState.isLoading
             },
         )
 

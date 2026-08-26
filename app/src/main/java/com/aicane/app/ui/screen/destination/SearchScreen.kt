@@ -1,6 +1,7 @@
 package com.aicane.app.ui.screen.destination
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,9 +11,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -24,6 +22,7 @@ import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.destination.SearchViewModel
+import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.theme.*
 
 data class PlaceResult(
@@ -52,83 +51,73 @@ fun SearchScreen(
             .statusBarsPadding()
             .navigationBarsPadding(),
     ) {
+        // 헤더
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 16.dp, vertical = 12.dp),
+                .padding(start = 16.dp, end = 24.dp, top = 20.dp),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(14.dp),
+        ) {
+            BackButton(onClick = onBack)
+            Text(text = "목적지 검색", style = DisplaySm, color = Ink)
+        }
+
+        Spacer(Modifier.height(16.dp))
+
+        // 검색 바
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp)
+                .height(64.dp)
+                .clip(RoundedCornerShape(999.dp))
+                .background(CanvasSoft)
+                .padding(horizontal = 20.dp),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            Row(
+            // 아웃라인 원형 아이콘
+            Box(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(64.dp)
-                    .clip(RoundedCornerShape(999.dp))
-                    .background(CanvasSoft)
-                    .padding(horizontal = 18.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                Box(
+                    .size(18.dp)
+                    .border(2.dp, TextBody, CircleShape),
+            )
+
+            Box(modifier = Modifier.weight(1f)) {
+                if (query.isEmpty()) {
+                    Text(text = "장소 이름을 입력하세요", style = BodyLg, color = TextMute)
+                }
+                BasicTextField(
+                    value = query,
+                    onValueChange = {
+                        query = it
+                        viewModel.onQueryChange(it)
+                    },
+                    singleLine = true,
+                    textStyle = BodyLg.copy(color = Ink),
+                    cursorBrush = SolidColor(Ink),
                     modifier = Modifier
-                        .size(28.dp)
-                        .clip(CircleShape)
-                        .background(Ink),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Search,
-                        contentDescription = null,
-                        tint = OnInk,
-                        modifier = Modifier.size(16.dp),
-                    )
-                }
-
-                Spacer(Modifier.width(12.dp))
-
-                Box(modifier = Modifier.weight(1f)) {
-                    if (query.isEmpty()) {
-                        Text(text = "목적지를 검색하세요", style = BodyLg, color = TextMute)
-                    }
-                    BasicTextField(
-                        value = query,
-                        onValueChange = {
-                            query = it
-                            viewModel.onQueryChange(it)
-                        },
-                        singleLine = true,
-                        textStyle = BodyLg.copy(color = Ink),
-                        cursorBrush = SolidColor(Ink),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .focusRequester(focusRequester),
-                    )
-                }
-
-                if (query.isNotEmpty()) {
-                    IconButton(
-                        onClick = {
-                            query = ""
-                            viewModel.onQueryChange("")
-                        },
-                        modifier = Modifier.size(32.dp),
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = "검색어 지우기",
-                            tint = TextBody,
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                }
+                        .fillMaxWidth()
+                        .focusRequester(focusRequester),
+                )
             }
 
-            Text(
-                text = "취소",
-                style = BodyMdStrong,
-                color = Ink,
-                modifier = Modifier.clickable { onBack() },
-            )
+            if (query.isNotEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .size(32.dp)
+                        .clip(CircleShape)
+                        .background(Canvas)
+                        .clickable { query = ""; viewModel.onQueryChange("") },
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text(text = "✕", style = BodySm, color = TextBody)
+                }
+            }
         }
+
+        Spacer(Modifier.height(8.dp))
 
         when {
             query.isBlank() -> {

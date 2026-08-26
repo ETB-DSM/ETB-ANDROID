@@ -1,16 +1,22 @@
 package com.aicane.app.ui.screen.auth
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.auth.VerifyViewModel
-import com.aicane.app.ui.component.AiCaneTextField
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.StepIndicator
@@ -23,7 +29,6 @@ fun VerifyScreen(
     viewModel: VerifyViewModel = hiltViewModel(),
 ) {
     var code by remember { mutableStateOf("") }
-
     val uiState by viewModel.uiState.collectAsState()
 
     Column(
@@ -48,31 +53,103 @@ fun VerifyScreen(
             )
         }
 
-        Spacer(Modifier.height(32.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text(
+                text = "이메일 인증",
+                style = DisplayMd,
+                color = Ink,
+                textAlign = TextAlign.Center,
+            )
 
-        Text(text = "이메일 인증", style = DisplayMd, color = Ink)
+            Spacer(Modifier.height(12.dp))
 
-        Spacer(Modifier.height(8.dp))
+            // Email pill
+            Box(
+                modifier = Modifier
+                    .clip(RoundedCornerShape(999.dp))
+                    .background(CanvasSoft)
+                    .padding(horizontal = 16.dp, vertical = 8.dp),
+            ) {
+                Text(text = email, style = BodySm, color = TextBody)
+            }
 
-        Text(
-            text = "이메일로 전송된 6자리 인증 코드를 입력해주세요.",
-            style = BodyMd,
-            color = TextBody,
-        )
+            Spacer(Modifier.height(8.dp))
 
-        Spacer(Modifier.height(32.dp))
+            Text(
+                text = "위 주소로 전송된 6자리 인증 코드를 입력해주세요.",
+                style = BodyMd,
+                color = TextBody,
+                textAlign = TextAlign.Center,
+            )
 
-        AiCaneTextField(
-            value = code,
-            onValueChange = { if (it.length <= 6) { code = it; viewModel.clearError() } },
-            label = "인증 코드",
-            placeholder = "6자리 코드 입력",
-            keyboardType = KeyboardType.Number,
-            isError = uiState.errorMessage.isNotEmpty(),
-            errorMessage = uiState.errorMessage,
-        )
+            Spacer(Modifier.height(32.dp))
 
-        Spacer(Modifier.weight(1f))
+            // Hidden input capturing keystrokes
+            BasicTextField(
+                value = code,
+                onValueChange = {
+                    if (it.length <= 6 && it.all { c -> c.isDigit() }) {
+                        code = it
+                        viewModel.clearError()
+                    }
+                },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                cursorBrush = SolidColor(androidx.compose.ui.graphics.Color.Transparent),
+                decorationBox = {
+                    // 6-box OTP grid
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        repeat(6) { index ->
+                            val char = code.getOrNull(index)
+                            val isActive = index == code.length
+                            val hasError = uiState.errorMessage.isNotEmpty()
+                            Box(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .aspectRatio(1f)
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(CanvasSoft)
+                                    .border(
+                                        width = if (isActive) 2.dp else 1.dp,
+                                        color = when {
+                                            hasError -> Error
+                                            isActive -> Ink
+                                            else     -> SurfacePressed
+                                        },
+                                        shape = RoundedCornerShape(12.dp),
+                                    ),
+                                contentAlignment = Alignment.Center,
+                            ) {
+                                Text(
+                                    text = char?.toString() ?: "",
+                                    style = DisplayMd,
+                                    color = Ink,
+                                    textAlign = TextAlign.Center,
+                                )
+                            }
+                        }
+                    }
+                },
+            )
+
+            if (uiState.errorMessage.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = uiState.errorMessage,
+                    style = Caption,
+                    color = Error,
+                    textAlign = TextAlign.Center,
+                )
+            }
+        }
 
         FullWidthPillButton(
             text = "확인",

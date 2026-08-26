@@ -3,6 +3,7 @@ package com.aicane.app.presentation.destination
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.aicane.app.domain.model.Destination
+import com.aicane.app.domain.usecase.auth.GetUserInfoUseCase
 import com.aicane.app.domain.usecase.destination.DeleteDestinationUseCase
 import com.aicane.app.domain.usecase.destination.GetDestinationsUseCase
 import com.aicane.app.domain.usecase.navigation.CreateSessionUseCase
@@ -26,6 +27,7 @@ class DestinationListViewModel @Inject constructor(
     private val getDestinationsUseCase: GetDestinationsUseCase,
     private val deleteDestinationUseCase: DeleteDestinationUseCase,
     private val createSessionUseCase: CreateSessionUseCase,
+    private val getUserInfoUseCase: GetUserInfoUseCase,
 ) : ViewModel() {
 
     data class UiState(
@@ -33,6 +35,7 @@ class DestinationListViewModel @Inject constructor(
         val isLoading: Boolean = false,
         val errorMessage: String = "",
         val destinationToDelete: Destination? = null,
+        val userInitial: String = "?",
     )
 
     private val _uiState = MutableStateFlow(UiState())
@@ -40,6 +43,12 @@ class DestinationListViewModel @Inject constructor(
 
     private val _events = Channel<DestinationListEvent>()
     val events: Flow<DestinationListEvent> = _events.receiveAsFlow()
+
+    init {
+        val (name, _) = getUserInfoUseCase()
+        val initial = name.trim().firstOrNull()?.toString() ?: "?"
+        _uiState.update { it.copy(userInitial = initial) }
+    }
 
     fun loadDestinations() {
         viewModelScope.launch {

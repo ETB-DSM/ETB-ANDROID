@@ -90,6 +90,10 @@ fun NavGraph(
                     when (event) {
                         is SignupEvent.NavigateToVerify ->
                             navController.navigate(Screen.Verify.createRoute(event.email))
+                        is SignupEvent.NavigateComplete ->
+                            navController.navigate(Screen.Device.route) {
+                                popUpTo(Screen.Signup.route) { inclusive = true }
+                            }
                     }
                 }
             }

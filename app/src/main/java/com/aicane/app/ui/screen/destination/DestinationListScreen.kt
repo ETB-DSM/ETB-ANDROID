@@ -10,7 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -77,14 +76,19 @@ fun DestinationListScreen(
                 ) {
                     Icon(imageVector = Icons.Default.Add, contentDescription = "목적지 추가", tint = Ink)
                 }
-                IconButton(
-                    onClick = onNavigateToMypage,
+                Box(
                     modifier = Modifier
                         .size(48.dp)
                         .clip(CircleShape)
-                        .background(Ink),
+                        .background(Ink)
+                        .clickable { onNavigateToMypage() },
+                    contentAlignment = Alignment.Center,
                 ) {
-                    Icon(imageVector = Icons.Default.Person, contentDescription = "마이페이지", tint = OnInk)
+                    Text(
+                        text = uiState.userInitial,
+                        style = BodyMdStrong,
+                        color = OnInk,
+                    )
                 }
             }
         }
@@ -116,10 +120,18 @@ fun DestinationListScreen(
                         modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp),
                     )
                 }
+                Text(
+                    text = "카드를 눌러 길안내를 시작하세요",
+                    style = Caption,
+                    color = TextMute,
+                    modifier = Modifier.padding(horizontal = 20.dp, vertical = 4.dp),
+                )
                 LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .background(CanvasSofter),
                     contentPadding = PaddingValues(horizontal = 20.dp, vertical = 8.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
                     items(uiState.destinations, key = { it.destinationId }) { destination ->
                         DestinationCard(
@@ -144,16 +156,20 @@ private fun DestinationCard(
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(16.dp))
-            .background(CanvasSoft)
+            .background(Canvas)
             .clickable { onStart() }
-            .padding(horizontal = 20.dp, vertical = 18.dp),
+            .padding(horizontal = 20.dp, vertical = 22.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(text = destination.name, style = BodyMdStrong, color = Ink)
-            Spacer(Modifier.height(4.dp))
-            Text(text = destination.targetText, style = BodySm, color = TextBody)
+            Spacer(Modifier.height(6.dp))
+            Text(
+                text = "인식 텍스트 · ${destination.targetText} · ${destination.radius.toInt()}m",
+                style = BodySm,
+                color = TextBody,
+            )
         }
         Row(
             horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -173,10 +189,12 @@ private fun DestinationCard(
             Box(
                 modifier = Modifier
                     .clip(RoundedCornerShape(999.dp))
-                    .background(Ink)
-                    .padding(horizontal = 16.dp, vertical = 8.dp),
+                    .background(CanvasSoft)
+                    .height(44.dp)
+                    .padding(horizontal = 18.dp),
+                contentAlignment = Alignment.Center,
             ) {
-                Text(text = "출발", style = BodySmStrong, color = OnInk)
+                Text(text = "길안내 시작", style = BodySmStrong, color = Ink)
             }
         }
     }

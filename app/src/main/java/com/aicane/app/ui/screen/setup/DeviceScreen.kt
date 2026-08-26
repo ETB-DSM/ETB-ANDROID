@@ -1,10 +1,15 @@
 package com.aicane.app.ui.screen.setup
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.device.DeviceViewModel
@@ -33,30 +38,60 @@ fun DeviceScreen(
 
         StepIndicator(current = 1, total = 2)
 
-        Spacer(Modifier.height(32.dp))
+        Column(
+            modifier = Modifier
+                .weight(1f)
+                .fillMaxWidth(),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // 눈물방울 아이콘 (테두리만 있는 rounded box, -45도 회전)
+            Box(
+                modifier = Modifier
+                    .size(56.dp)
+                    .rotate(-45f)
+                    .border(
+                        width = 5.dp,
+                        color = Ink,
+                        shape = RoundedCornerShape(
+                            topStart = 999.dp,
+                            topEnd = 999.dp,
+                            bottomEnd = 999.dp,
+                            bottomStart = 2.dp,
+                        ),
+                    ),
+            )
 
-        Text(text = "기기 등록", style = DisplayMd, color = Ink)
+            Spacer(Modifier.height(28.dp))
 
-        Spacer(Modifier.height(8.dp))
+            Text(
+                text = "디바이스 등록",
+                style = DisplayMd,
+                color = Ink,
+                textAlign = TextAlign.Center,
+            )
 
-        Text(
-            text = "지팡이 기기에 부착된 ID를 입력해주세요.\n기기 ID는 기기 하단에서 확인할 수 있습니다.",
-            style = BodyMd,
-            color = TextBody,
-        )
+            Spacer(Modifier.height(10.dp))
 
-        Spacer(Modifier.height(32.dp))
+            Text(
+                text = "AI-Cane 지팡이의 Device ID를 입력해주세요.",
+                style = BodyMd,
+                color = TextBody,
+                textAlign = TextAlign.Center,
+            )
 
-        AiCaneTextField(
-            value = deviceId,
-            onValueChange = { deviceId = it; viewModel.clearError() },
-            label = "기기 ID",
-            placeholder = "기기 ID를 입력하세요",
-            isError = uiState.errorMessage.isNotEmpty(),
-            errorMessage = uiState.errorMessage,
-        )
+            Spacer(Modifier.height(28.dp))
 
-        Spacer(Modifier.weight(1f))
+            AiCaneTextField(
+                value = deviceId,
+                onValueChange = { deviceId = it; viewModel.clearError() },
+                label = "",
+                placeholder = "예: aicane-0001",
+                isError = uiState.errorMessage.isNotEmpty(),
+                errorMessage = uiState.errorMessage,
+                caption = "지팡이 손잡이 안쪽 라벨에서 확인할 수 있습니다",
+            )
+        }
 
         FullWidthPillButton(
             text = "기기 등록",

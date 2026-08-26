@@ -2,10 +2,13 @@ package com.aicane.app.ui.screen.navigation
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.theme.*
@@ -20,44 +23,47 @@ fun NavigationEndScreen(
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .background(Ink)
+            .background(Canvas)
             .statusBarsPadding()
             .navigationBarsPadding()
-            .padding(horizontal = 24.dp),
+            .padding(horizontal = 24.dp, vertical = 32.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        Text(text = "도착했어요!", style = DisplayXL, color = OnInk)
-
-        Spacer(Modifier.height(12.dp))
-
-        Text(text = destination, style = DisplayMd, color = OnInk.copy(alpha = 0.8f))
-
-        Spacer(Modifier.height(48.dp))
-
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceEvenly,
+        // 체크마크 원
+        Box(
+            modifier = Modifier
+                .size(96.dp)
+                .clip(CircleShape)
+                .background(Ink),
+            contentAlignment = Alignment.Center,
         ) {
-            StatItem(label = "이동 시간", value = walkingTime)
-            StatItem(label = "이동 거리", value = walkingDistance)
+            Text(text = "✓", style = DisplayMd, color = OnInk)
         }
 
-        Spacer(Modifier.height(64.dp))
+        Spacer(Modifier.height(20.dp))
+
+        Text(
+            text = "도착했어요!",
+            style = DisplayMd,
+            color = Ink,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(8.dp))
+
+        Text(
+            text = destination,
+            style = BodyLg,
+            color = TextBody,
+            textAlign = TextAlign.Center,
+        )
+
+        Spacer(Modifier.height(48.dp))
 
         FullWidthPillButton(
             text = "홈으로",
             onClick = onHome,
-            variant = com.aicane.app.ui.component.PillButtonVariant.Secondary,
         )
-    }
-}
-
-@Composable
-private fun StatItem(label: String, value: String) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(text = value, style = DisplayMd, color = OnInk)
-        Spacer(Modifier.height(4.dp))
-        Text(text = label, style = BodySm, color = OnInk.copy(alpha = 0.6f))
     }
 }
