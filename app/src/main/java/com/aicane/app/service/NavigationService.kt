@@ -39,6 +39,9 @@ class NavigationService : Service() {
     private var locationCallback: LocationCallback? = null
 
     @Volatile private var isRerouting = false
+    @Volatile private var lastRerouteAt = 0L
+    @Volatile private var lastRerouteLat = 0.0
+    @Volatile private var lastRerouteLng = 0.0
 
     companion object {
         const val NOTIFICATION_ID = 1001
@@ -52,6 +55,7 @@ class NavigationService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
+        actionCalculator.reset()
         startLocationUpdates()
         return START_STICKY
     }
@@ -91,11 +95,21 @@ class NavigationService : Service() {
 
     private suspend fun handleReroute(lat: Double, lng: Double) {
         if (isRerouting) return
+
+        // 제자리에서 매 위치 업데이트마다 재탐색하는 폭주 방지:
+        // 직전 재탐색 이후 20m 이상 이동했거나 10초가 지났을 때만 재요청한다.
+        val now        = System.currentTimeMillis()
+        val movedFar   = actionCalculator.haversine(lat, lng, lastRerouteLat, lastRerouteLng) > 20.0
+        val cooledDown = now - lastRerouteAt > 10_000L
+        if (!movedFar && !cooledDown) return
+
         isRerouting = true
         fetchRouteUseCase(lat, lng, config.destinationLat, config.destinationLng)
             .onSuccess { newSteps ->
-                config.steps = newSteps
-                actionUploader.reset()
+                config.steps   = newSteps
+                lastRerouteAt  = now
+                lastRerouteLat = lat
+                lastRerouteLng = lng
             }
         isRerouting = false
     }

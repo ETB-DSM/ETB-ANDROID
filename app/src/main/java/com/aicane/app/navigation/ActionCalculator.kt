@@ -7,12 +7,23 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.math.atan2
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.sin
 import kotlin.math.sqrt
 
+private const val OFF_ROUTE_THRESHOLD = 50.0   // m. 이 거리를 넘어야 경로 이탈로 본다.
+
 @Singleton
 class ActionCalculator @Inject constructor() {
+
+    // 안내 시작 후 사용자가 경로에 한 번이라도 진입했는지. 진입 전(출발 스냅으로 멀 때)에는 재탐색을 보류한다.
+    @Volatile private var hasEnteredRoute = false
+
+    /** 새 안내 세션 시작 시 호출해 "경로 진입 여부" 상태를 초기화한다. */
+    fun reset() {
+        hasEnteredRoute = false
+    }
 
     fun calculate(
         lat: Double,
@@ -27,8 +38,14 @@ class ActionCalculator @Inject constructor() {
 
         if (steps.isEmpty()) return NavigationAction.STRAIGHT to distToDest
 
-        val minDistToRoute = steps.minOf { haversine(lat, lng, it.latitude, it.longitude) }
-        if (minDistToRoute > 30.0) return NavigationAction.REROUTE to 0.0
+        val distToRoute = distanceToRoute(lat, lng, steps)
+        if (distToRoute <= OFF_ROUTE_THRESHOLD) {
+            hasEnteredRoute = true
+        } else {
+            // 경로에서 벗어남: 이미 진입한 적 있으면 재탐색, 아직 진입 전(출발 유예)이면 직진 안내만.
+            return if (hasEnteredRoute) NavigationAction.REROUTE to 0.0
+            else NavigationAction.STRAIGHT to distToDest
+        }
 
         val currentIdx = steps.indices.minByOrNull { haversine(lat, lng, steps[it].latitude, steps[it].longitude) }
             ?: return NavigationAction.STRAIGHT to distToDest
@@ -51,6 +68,31 @@ class ActionCalculator @Inject constructor() {
             } to distToTurn
             else -> NavigationAction.STRAIGHT to distToTurn
         }
+    }
+
+    /** 경로(연속 선분들)까지의 최단 수직거리(m). */
+    private fun distanceToRoute(lat: Double, lng: Double, steps: List<RouteStep>): Double {
+        if (steps.size == 1) return haversine(lat, lng, steps[0].latitude, steps[0].longitude)
+        var min = Double.MAX_VALUE
+        for (i in 0 until steps.size - 1) {
+            val d = pointToSegment(lat, lng, steps[i], steps[i + 1])
+            if (d < min) min = d
+        }
+        return min
+    }
+
+    /** 점 P에서 선분 A-B까지 최단거리(m). 도보 스케일에서 충분히 정확한 국소 평면 근사. */
+    private fun pointToSegment(pLat: Double, pLng: Double, a: RouteStep, b: RouteStep): Double {
+        val mPerLat = 110_540.0
+        val mPerLng = 111_320.0 * cos(Math.toRadians(pLat))
+        val px = pLng * mPerLng; val py = pLat * mPerLat
+        val ax = a.longitude * mPerLng; val ay = a.latitude * mPerLat
+        val bx = b.longitude * mPerLng; val by = b.latitude * mPerLat
+        val dx = bx - ax; val dy = by - ay
+        val len2 = dx * dx + dy * dy
+        val t = if (len2 == 0.0) 0.0 else (((px - ax) * dx + (py - ay) * dy) / len2).coerceIn(0.0, 1.0)
+        val cx = ax + t * dx; val cy = ay + t * dy
+        return hypot(px - cx, py - cy)
     }
 
     fun haversine(lat1: Double, lng1: Double, lat2: Double, lng2: Double): Double {
