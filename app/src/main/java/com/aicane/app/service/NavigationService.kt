@@ -52,6 +52,7 @@ class NavigationService : Service() {
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         startForeground(NOTIFICATION_ID, buildNotification())
+        actionCalculator.reset()
         startLocationUpdates()
         return START_STICKY
     }
