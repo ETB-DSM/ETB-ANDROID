@@ -8,6 +8,7 @@ import android.os.IBinder
 import androidx.core.app.NotificationCompat
 import com.aicane.app.domain.model.NavigationAction
 import com.aicane.app.domain.model.NavigationInstruction
+import com.aicane.app.domain.model.TurnType
 import com.aicane.app.domain.usecase.navigation.FetchRouteUseCase
 import com.aicane.app.domain.usecase.navigation.UpdateSessionStatusUseCase
 import com.aicane.app.navigation.ActionCalculator
@@ -63,7 +64,7 @@ class NavigationService : Service() {
     private fun startLocationUpdates() {
         locationCallback = locationCollector.startUpdates { location ->
             serviceScope.launch {
-                val (action, distance) = actionCalculator.calculate(
+                val guidance = actionCalculator.calculate(
                     lat          = location.latitude,
                     lng          = location.longitude,
                     steps        = config.steps,
@@ -72,15 +73,17 @@ class NavigationService : Service() {
                     destRadius   = config.destinationRadius,
                 )
                 val instruction = NavigationInstruction(
-                    sessionId      = config.sessionId,
-                    action         = action,
-                    distanceMeters = distance,
-                    message        = action.toKoreanMessage(distance),
+                    sessionId          = config.sessionId,
+                    action             = guidance.action,
+                    distanceMeters     = guidance.distanceToDest,
+                    message            = guidance.action.toKoreanMessage(guidance.distanceToNextTurn, guidance.nextTurnType),
+                    nextTurnType       = guidance.nextTurnType,
+                    distanceToNextTurn = guidance.distanceToNextTurn,
                 )
                 stateHolder.currentInstruction.value = instruction
                 actionUploader.upload(instruction)
 
-                when (action) {
+                when (guidance.action) {
                     NavigationAction.ARRIVED -> {
                         updateStatusUseCase(config.sessionId, "arrived")
                         stopForeground(STOP_FOREGROUND_REMOVE)
@@ -136,12 +139,23 @@ class NavigationService : Service() {
         .build()
 }
 
-private fun NavigationAction.toKoreanMessage(distance: Double): String = when (this) {
-    NavigationAction.STRAIGHT      -> "직진"
-    NavigationAction.PREPARE_LEFT  -> "${distance.toInt()}m 앞 좌회전"
+private fun NavigationAction.toKoreanMessage(distanceToNextTurn: Double?, nextTurnType: TurnType?): String = when (this) {
+    NavigationAction.STRAIGHT      ->
+        if (distanceToNextTurn != null && nextTurnType != null) {
+            "${distanceToNextTurn.toInt()}m 후 ${nextTurnType.toKorean()}"
+        } else {
+            "직진"
+        }
+    NavigationAction.PREPARE_LEFT  -> "${distanceToNextTurn?.toInt() ?: 0}m 앞 좌회전"
     NavigationAction.LEFT          -> "좌회전"
-    NavigationAction.PREPARE_RIGHT -> "${distance.toInt()}m 앞 우회전"
+    NavigationAction.PREPARE_RIGHT -> "${distanceToNextTurn?.toInt() ?: 0}m 앞 우회전"
     NavigationAction.RIGHT         -> "우회전"
     NavigationAction.ARRIVED       -> "목적지 도착"
     NavigationAction.REROUTE       -> "경로 재탐색 중"
+}
+
+private fun TurnType.toKorean(): String = when (this) {
+    TurnType.LEFT  -> "좌회전"
+    TurnType.RIGHT -> "우회전"
+    TurnType.STRAIGHT -> "직진"
 }

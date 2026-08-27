@@ -1,6 +1,7 @@
 package com.aicane.app.navigation
 
 import com.aicane.app.domain.model.NavigationAction
+import com.aicane.app.domain.model.NavigationGuidance
 import com.aicane.app.domain.model.RouteStep
 import com.aicane.app.domain.model.TurnType
 import javax.inject.Inject
@@ -32,42 +33,55 @@ class ActionCalculator @Inject constructor() {
         destLat: Double,
         destLng: Double,
         destRadius: Double,
-    ): Pair<NavigationAction, Double> {
+    ): NavigationGuidance {
         val distToDest = haversine(lat, lng, destLat, destLng)
-        if (distToDest <= destRadius) return NavigationAction.ARRIVED to 0.0
+        if (distToDest <= destRadius) return NavigationGuidance(NavigationAction.ARRIVED, distToDest, null, null)
 
-        if (steps.isEmpty()) return NavigationAction.STRAIGHT to distToDest
+        if (steps.isEmpty()) return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
 
         val distToRoute = distanceToRoute(lat, lng, steps)
         if (distToRoute <= OFF_ROUTE_THRESHOLD) {
             hasEnteredRoute = true
         } else {
             // 경로에서 벗어남: 이미 진입한 적 있으면 재탐색, 아직 진입 전(출발 유예)이면 직진 안내만.
-            return if (hasEnteredRoute) NavigationAction.REROUTE to 0.0
-            else NavigationAction.STRAIGHT to distToDest
+            val offRouteAction = if (hasEnteredRoute) NavigationAction.REROUTE else NavigationAction.STRAIGHT
+            return NavigationGuidance(offRouteAction, distToDest, null, null)
         }
 
         val currentIdx = steps.indices.minByOrNull { haversine(lat, lng, steps[it].latitude, steps[it].longitude) }
-            ?: return NavigationAction.STRAIGHT to distToDest
+            ?: return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
 
-        val nextTurn = steps.drop(currentIdx + 1).firstOrNull { it.turnType != TurnType.STRAIGHT }
-            ?: return NavigationAction.STRAIGHT to distToDest
+        val nextTurnIdx = (currentIdx + 1 until steps.size).firstOrNull { steps[it].turnType != TurnType.STRAIGHT }
+            ?: return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
 
-        val distToTurn = haversine(lat, lng, nextTurn.latitude, nextTurn.longitude)
+        val nextTurn = steps[nextTurnIdx]
+        val distToTurn = pathDistanceToTurn(lat, lng, steps, currentIdx, nextTurnIdx)
 
-        return when {
+        val action = when {
             distToTurn <= 5.0 -> when (nextTurn.turnType) {
                 TurnType.LEFT  -> NavigationAction.LEFT
                 TurnType.RIGHT -> NavigationAction.RIGHT
                 else           -> NavigationAction.STRAIGHT
-            } to distToTurn
+            }
             distToTurn <= 20.0 -> when (nextTurn.turnType) {
                 TurnType.LEFT  -> NavigationAction.PREPARE_LEFT
                 TurnType.RIGHT -> NavigationAction.PREPARE_RIGHT
                 else           -> NavigationAction.STRAIGHT
-            } to distToTurn
-            else -> NavigationAction.STRAIGHT to distToTurn
+            }
+            else -> NavigationAction.STRAIGHT
         }
+        return NavigationGuidance(action, distToDest, nextTurn.turnType, distToTurn)
+    }
+
+    /** 현재 위치에서 경로를 따라 다음 회전점(nextTurnIdx)까지의 누적 거리(m). */
+    private fun pathDistanceToTurn(
+        lat: Double, lng: Double, steps: List<RouteStep>, currentIdx: Int, nextTurnIdx: Int,
+    ): Double {
+        var d = haversine(lat, lng, steps[currentIdx].latitude, steps[currentIdx].longitude)
+        for (i in currentIdx until nextTurnIdx) {
+            d += haversine(steps[i].latitude, steps[i].longitude, steps[i + 1].latitude, steps[i + 1].longitude)
+        }
+        return d
     }
 
     /** 경로(연속 선분들)까지의 최단 수직거리(m). */

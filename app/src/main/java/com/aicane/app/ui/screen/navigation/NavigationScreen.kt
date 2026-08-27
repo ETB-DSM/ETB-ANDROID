@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.domain.model.NavigationAction
+import com.aicane.app.domain.model.TurnType
 import com.aicane.app.presentation.navigation.NavigationViewModel
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.PillButtonVariant
@@ -59,7 +60,12 @@ fun NavigationScreen(
     val instruction = uiState.instruction
     val action = instruction?.action ?: NavigationAction.STRAIGHT
     val actionLabel = action.toLabel()
-    val remainingDistance = instruction?.distanceMeters?.let { "${it.toInt()}m" } ?: ""
+    // 목적지까지 남은 거리 (하단 카드)
+    val destDistance = instruction?.distanceMeters?.let { "${it.toInt()}m" } ?: ""
+    // 큰 숫자: 다음 회전까지 거리를 우선 표시, 없으면 목적지 거리
+    val bigDistance = instruction?.distanceToNextTurn?.let { "${it.toInt()}m" } ?: destDistance
+    // 다음 회전 방향 힌트 (예정된 회전이 있을 때만)
+    val turnHint = instruction?.nextTurnType?.toHint()
     val background: Color = if (action == NavigationAction.REROUTE) InkElevated else Ink
 
     Box(
@@ -83,12 +89,22 @@ fun NavigationScreen(
                 ) {
                     Text(text = actionLabel, style = DisplayXL, color = OnInk)
                     Spacer(Modifier.height(8.dp))
-                    if (remainingDistance.isNotEmpty()) {
+                    if (bigDistance.isNotEmpty()) {
                         Text(
-                            text = remainingDistance,
+                            text = bigDistance,
                             style = BodyLg,
                             color = OnInk.copy(alpha = 0.6f),
                         )
+                    }
+                    if (turnHint != null) {
+                        Spacer(Modifier.height(4.dp))
+                        Text(
+                            text = turnHint,
+                            style = BodyLg,
+                            color = OnInk,
+                        )
+                    }
+                    if (bigDistance.isNotEmpty() || turnHint != null) {
                         Spacer(Modifier.height(16.dp))
                     }
                     val pulseAlpha by rememberInfiniteTransition(label = "pulse").animateFloat(
@@ -134,9 +150,9 @@ fun NavigationScreen(
                     ) {
                         Column {
                             Text(text = "목적지: $destName", style = BodyMdStrong, color = Ink)
-                            if (remainingDistance.isNotEmpty()) {
+                            if (destDistance.isNotEmpty()) {
                                 Spacer(Modifier.height(2.dp))
-                                Text(text = "$remainingDistance 남음", style = BodySm, color = TextBody)
+                                Text(text = "목적지까지 $destDistance 남음", style = BodySm, color = TextBody)
                             }
                         }
                         Box(
@@ -175,4 +191,10 @@ private fun NavigationAction.toLabel(): String = when (this) {
     NavigationAction.RIGHT         -> "우회전"
     NavigationAction.ARRIVED       -> "도착"
     NavigationAction.REROUTE       -> "경로 재탐색"
+}
+
+private fun TurnType.toHint(): String? = when (this) {
+    TurnType.LEFT     -> "좌회전 예정"
+    TurnType.RIGHT    -> "우회전 예정"
+    TurnType.STRAIGHT -> null
 }
