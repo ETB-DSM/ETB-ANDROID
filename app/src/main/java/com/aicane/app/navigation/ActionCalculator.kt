@@ -1,5 +1,6 @@
 package com.aicane.app.navigation
 
+import android.util.Log
 import com.aicane.app.domain.model.NavigationAction
 import com.aicane.app.domain.model.NavigationGuidance
 import com.aicane.app.domain.model.RouteStep
@@ -51,11 +52,20 @@ class ActionCalculator @Inject constructor() {
         val currentIdx = steps.indices.minByOrNull { haversine(lat, lng, steps[it].latitude, steps[it].longitude) }
             ?: return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
 
-        val nextTurnIdx = (currentIdx + 1 until steps.size).firstOrNull { steps[it].turnType != TurnType.STRAIGHT }
-            ?: return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
+        // currentIdx 자신이 회전점일 수 있으므로(사용자가 회전 지점 바로 위에 있을 때) currentIdx부터 포함해 탐색한다.
+        val nextTurnIdx = (currentIdx until steps.size).firstOrNull { steps[it].turnType != TurnType.STRAIGHT }
+        if (nextTurnIdx == null) {
+            Log.d("NavCalc", "currentIdx=$currentIdx/${steps.size}, 다음 회전 없음 (destDistance=${distToDest.toInt()}m)")
+            return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
+        }
 
         val nextTurn = steps[nextTurnIdx]
         val distToTurn = pathDistanceToTurn(lat, lng, steps, currentIdx, nextTurnIdx)
+        Log.d(
+            "NavCalc",
+            "currentIdx=$currentIdx/${steps.size}, nextTurnIdx=$nextTurnIdx(${nextTurn.turnType}), " +
+                "distToTurn=${distToTurn.toInt()}m, destDistance=${distToDest.toInt()}m",
+        )
 
         val action = when {
             distToTurn <= 5.0 -> when (nextTurn.turnType) {
