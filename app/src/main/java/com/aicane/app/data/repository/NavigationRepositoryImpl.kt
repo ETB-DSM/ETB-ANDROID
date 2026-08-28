@@ -1,5 +1,6 @@
 package com.aicane.app.data.repository
 
+import android.util.Log
 import com.aicane.app.data.remote.api.NavigationApi
 import com.aicane.app.data.remote.api.TmapPedestrianApi
 import com.aicane.app.data.remote.dto.navigation.CreateInstructionRequest
@@ -40,7 +41,7 @@ class NavigationRepositoryImpl @Inject constructor(
                 endName   = java.net.URLEncoder.encode("목적지", "UTF-8"),
             )
         )
-        response.features.flatMap { feature ->
+        val steps = response.features.flatMap { feature ->
             when (feature.geometry.type) {
                 "Point" -> {
                     val coords = feature.geometry.coordinates.jsonArray
@@ -51,6 +52,10 @@ class NavigationRepositoryImpl @Inject constructor(
                         13, 17, 19, 213 -> TurnType.RIGHT
                         else            -> TurnType.STRAIGHT
                     }
+                    Log.d(
+                        "NavRoute",
+                        "Point rawTurnType=${feature.properties.turnType} -> $turnType, desc=\"${feature.properties.description}\"",
+                    )
                     listOf(
                         RouteStep(
                             latitude       = latitude,
@@ -78,6 +83,9 @@ class NavigationRepositoryImpl @Inject constructor(
                 else -> emptyList()
             }
         }
+        val turnCount = steps.count { it.turnType != TurnType.STRAIGHT }
+        Log.d("NavRoute", "steps=${steps.size}, features=${response.features.size}, 회전 노드=$turnCount")
+        steps
     }
 
     override suspend fun createInstruction(
