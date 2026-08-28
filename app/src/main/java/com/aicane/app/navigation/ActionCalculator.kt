@@ -51,7 +51,8 @@ class ActionCalculator @Inject constructor() {
         val currentIdx = steps.indices.minByOrNull { haversine(lat, lng, steps[it].latitude, steps[it].longitude) }
             ?: return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
 
-        val nextTurnIdx = (currentIdx + 1 until steps.size).firstOrNull { steps[it].turnType != TurnType.STRAIGHT }
+        // currentIdx 자신이 회전점일 수 있으므로(사용자가 회전 지점 바로 위에 있을 때) currentIdx부터 포함해 탐색한다.
+        val nextTurnIdx = (currentIdx until steps.size).firstOrNull { steps[it].turnType != TurnType.STRAIGHT }
             ?: return NavigationGuidance(NavigationAction.STRAIGHT, distToDest, null, null)
 
         val nextTurn = steps[nextTurnIdx]
