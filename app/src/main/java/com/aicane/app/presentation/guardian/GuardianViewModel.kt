@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class GuardianEvent {
-    object NavigateToDestinationList : GuardianEvent()
+    object Registered : GuardianEvent()
 }
 
 @HiltViewModel
@@ -38,7 +38,7 @@ class GuardianViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = "") }
             registerGuardianUseCase(name, phone)
-                .onSuccess { _events.send(GuardianEvent.NavigateToDestinationList) }
+                .onSuccess { _events.send(GuardianEvent.Registered) }
                 .onFailure { error ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = error.message ?: "보호자 등록에 실패했습니다.") }
                 }

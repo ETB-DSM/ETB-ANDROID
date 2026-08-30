@@ -165,6 +165,54 @@ fun NavigationScreen(
                         }
                     }
 
+                    val deviceStatus = uiState.deviceStatus
+                    if (deviceStatus != null) {
+                        Spacer(Modifier.height(12.dp))
+                        Row(
+                            modifier = Modifier
+                                .clip(RoundedCornerShape(999.dp))
+                                .background(CanvasSoft)
+                                .padding(horizontal = 14.dp, vertical = 8.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            Text(text = "${deviceStatus.battery}%", style = BodySmStrong, color = Ink)
+                            Box(
+                                modifier = Modifier
+                                    .size(6.dp)
+                                    .clip(CircleShape)
+                                    .background(if (deviceStatus.connected) Ink else TextMute),
+                            )
+                            Text(
+                                text = if (deviceStatus.connected) "연결됨" else "연결 끊김",
+                                style = BodySm,
+                                color = TextBody,
+                            )
+                        }
+                    }
+
+                    if (turnHint != null && instruction?.distanceToNextTurn != null) {
+                        Spacer(Modifier.height(20.dp))
+                        Text(text = "다음 안내", style = Caption, color = TextMute)
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CanvasSoft)
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = turnHint, style = BodyMdStrong, color = Ink)
+                            Text(
+                                text = "약 ${instruction.distanceToNextTurn.toInt()}m",
+                                style = BodySm,
+                                color = TextBody,
+                            )
+                        }
+                    }
+
                     if (uiState.errorMessage.isNotEmpty()) {
                         Spacer(Modifier.height(16.dp))
                         Text(text = uiState.errorMessage, style = BodySm, color = ErrorRed)

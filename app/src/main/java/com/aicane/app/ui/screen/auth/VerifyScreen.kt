@@ -2,6 +2,7 @@ package com.aicane.app.ui.screen.auth
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -148,7 +149,32 @@ fun VerifyScreen(
                     color = Error,
                     textAlign = TextAlign.Center,
                 )
+            } else if (uiState.infoMessage.isNotEmpty()) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = uiState.infoMessage,
+                    style = Caption,
+                    color = TextBody,
+                    textAlign = TextAlign.Center,
+                )
             }
+
+            Spacer(Modifier.height(20.dp))
+
+            val resendLabel = when {
+                uiState.isResending          -> "재전송하는 중..."
+                uiState.resendCooldownSec > 0 -> "코드 재전송 (${uiState.resendCooldownSec}초 후 가능)"
+                else                          -> "코드 재전송"
+            }
+            Text(
+                text = resendLabel,
+                style = BodySm,
+                color = if (uiState.isResending || uiState.resendCooldownSec > 0) TextMute else LinkBlue,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.clickable(
+                    enabled = !uiState.isResending && uiState.resendCooldownSec == 0,
+                ) { viewModel.resendCode(email) },
+            )
         }
 
         FullWidthPillButton(

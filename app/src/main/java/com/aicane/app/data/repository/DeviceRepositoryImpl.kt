@@ -4,6 +4,7 @@ import com.aicane.app.data.local.TokenStorage
 import com.aicane.app.data.remote.api.DeviceApi
 import com.aicane.app.data.remote.dto.device.RegisterDeviceRequest
 import com.aicane.app.domain.model.Device
+import com.aicane.app.domain.model.DeviceStatus
 import com.aicane.app.domain.repository.DeviceRepository
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -26,4 +27,11 @@ class DeviceRepositoryImpl @Inject constructor(
 
     override suspend fun deleteDevice(deviceId: String): Result<Unit> =
         runCatching { deviceApi.deleteDevice(deviceId) }
+
+    override suspend fun getDeviceStatus(deviceId: String): Result<DeviceStatus> = runCatching {
+        val response = deviceApi.getDeviceStatus(deviceId)
+        DeviceStatus(response.deviceId, response.battery, connected = response.networkOk)
+    }
+
+    override fun getPairedDeviceId(): String? = tokenStorage.deviceId
 }

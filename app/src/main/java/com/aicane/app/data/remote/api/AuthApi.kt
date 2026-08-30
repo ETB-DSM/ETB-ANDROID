@@ -3,6 +3,7 @@ package com.aicane.app.data.remote.api
 import com.aicane.app.data.remote.dto.auth.GoogleLoginRequest
 import com.aicane.app.data.remote.dto.auth.LoginRequest
 import com.aicane.app.data.remote.dto.auth.LoginResponse
+import com.aicane.app.data.remote.dto.auth.ResendCodeRequest
 import com.aicane.app.data.remote.dto.auth.SignupRequest
 import com.aicane.app.data.remote.dto.auth.VerifyEmailRequest
 import retrofit2.http.Body
@@ -11,6 +12,9 @@ import retrofit2.http.POST
 interface AuthApi {
     @POST("api/v1/auth/signup")
     suspend fun signup(@Body request: SignupRequest)
+
+    @POST("api/v1/auth/resend-code")
+    suspend fun resendCode(@Body request: ResendCodeRequest)
 
     @POST("api/v1/auth/verify-email")
     suspend fun verifyEmail(@Body request: VerifyEmailRequest)

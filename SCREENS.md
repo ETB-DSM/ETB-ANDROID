@@ -37,18 +37,18 @@ The app is used while walking outdoors.
 
 **Purpose**: Create a new account with email and password.
 
-**Layout** (scrollable, white background):
-- Top: Back arrow icon (`icon-button-circular`)
-- Headline: "회원가입" in `display-md`
-- Form card (`ex-auth-form-card`):
-  - Email input (`text-input`) — label: "이메일"
-  - Password input (`text-input`) — label: "비밀번호"
-  - Password confirm input (`text-input`) — label: "비밀번호 확인"
-  - Name input (`text-input`) — label: "이름"
-- Primary CTA: "다음" (`button-primary`, full-width pill)
-- Divider line with "또는" text in `body-sm` muted
-- Google login button (`button-secondary`, full-width pill, Google logo icon left)
-- Bottom link: "이미 계정이 있으신가요? 로그인" (`link-blue`)
+**Layout**: a 3-step wizard (`StepIndicator`, "N/3 단계"), not a single form — each
+step transitions with a fade + slide, back arrow steps back within the wizard
+before popping the screen.
+- Top: Back arrow icon + step indicator ("N/3 단계")
+- **Step 1 — Email**: Headline "회원가입" (`display-md`), email input (`text-input`,
+  label "이메일"), divider "또는", Google 가입 button (`button-secondary`, full-width
+  pill), primary CTA "다음"
+- **Step 2 — Name**: Headline "이름", name input (label "이름", caption: 보호자에게
+  표시된다는 안내), primary CTA "다음"
+- **Step 3 — Password**: Headline "비밀번호", password input + password confirm
+  input (inline mismatch error), primary CTA "회원가입"
+- Bottom link (step 1 only): "이미 계정이 있으신가요? 로그인" (`link-blue`)
 
 **States**:
 - Input error: red border + `caption` error message below field
@@ -61,16 +61,19 @@ The app is used while walking outdoors.
 **Purpose**: Enter the 6-digit code sent to the registered email.
 
 **Layout** (white background):
-- Top: Back arrow icon
+- Top: Back arrow icon + step indicator ("2/2 단계")
 - Headline: "이메일 인증" in `display-md`
-- Sub-text: "이메일로 전송된 6자리 코드를 입력해주세요." in `body-md` body color
-- Large 6-box OTP input row (each box: `text-input` style, square, `display-sm` center-aligned)
-- Primary CTA: "인증하기" (`button-primary`, full-width pill)
-- Below CTA: "코드 재전송" (`link-blue`, centered)
+- Email pill (`CanvasSoft`, full pill) showing the address the code was sent to
+- Sub-text: "위 주소로 전송된 6자리 인증 코드를 입력해주세요." in `body-md` body color
+- Large 6-box OTP input row (each box: `text-input` style, square, `display-md` center-aligned)
+- Below the boxes: "코드 재전송" (`link-blue`, centered) — disabled with a "N초 후 가능" countdown
+  for 30s after each resend; calls `POST /api/v1/auth/resend-code`
+- Primary CTA: "확인" (`button-primary`, full-width pill)
 
 **States**:
-- Wrong code: All boxes red border + error toast (`ex-toast`)
-- Verified: Brief success state → auto-navigate to Login
+- Wrong code: red border on active box + `caption` error message
+- Resend success: `caption` info message ("인증 코드를 다시 보냈어요."), 30s cooldown starts
+- Verified: auto-navigate to Login
 
 ---
 
@@ -209,9 +212,12 @@ The app is used while walking outdoors.
 **Bottom band** — white (`hero-band-light`), ~60% height:
 - Destination name in `display-sm` ink
 - Sub-text: "길안내 중" in `body-sm` body color
-- Device status row (`card-soft-tinted`, compact):
-  - Battery icon + percentage
-  - Connection status dot (black = connected, gray = disconnected)
+- Device status row (`card-soft-tinted`, compact) — polled every 30s from
+  `GET /api/v1/devices/:deviceId/status` for the paired device
+  (`TokenStorage.deviceId`); hidden entirely if no device is paired or the
+  first poll hasn't returned yet:
+  - Battery percentage
+  - Connection status dot (ink = `networkOk`, gray = otherwise)
 - "길안내 종료" button (`button-secondary`, full-width pill, red text override for danger action)
 
 **Action → visual mapping**:

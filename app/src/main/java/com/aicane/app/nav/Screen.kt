@@ -7,8 +7,12 @@ sealed class Screen(val route: String) {
     data object Verify          : Screen("verify?email={email}") {
         fun createRoute(email: String) = "verify?email=${android.net.Uri.encode(email)}"
     }
-    data object Device          : Screen("device")
-    data object Guardian        : Screen("guardian")
+    data object Device          : Screen("device?standalone={standalone}") {
+        fun createRoute(standalone: Boolean = false) = "device?standalone=$standalone"
+    }
+    data object Guardian        : Screen("guardian?standalone={standalone}") {
+        fun createRoute(standalone: Boolean = false) = "guardian?standalone=$standalone"
+    }
     data object DestinationList : Screen("destination_list")
     data object Search          : Screen("search")
     data object DestinationReg  : Screen("destination_reg?name={name}&address={address}&lat={lat}&lng={lng}") {
@@ -34,6 +38,9 @@ sealed class Screen(val route: String) {
             "&destRadius=${destRadius.toFloat()}" +
             "&destName=${android.net.Uri.encode(destName)}"
     }
-    data object NavigationEnd   : Screen("navigation_end")
+    data object NavigationEnd   : Screen("navigation_end?outcome={outcome}&destName={destName}") {
+        fun createRoute(outcome: String, destName: String) =
+            "navigation_end?outcome=$outcome&destName=${android.net.Uri.encode(destName)}"
+    }
     data object Mypage          : Screen("mypage")
 }

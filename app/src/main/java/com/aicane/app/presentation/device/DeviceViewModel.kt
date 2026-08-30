@@ -15,7 +15,7 @@ import kotlinx.coroutines.launch
 import javax.inject.Inject
 
 sealed class DeviceEvent {
-    object NavigateToGuardian : DeviceEvent()
+    object Registered : DeviceEvent()
 }
 
 @HiltViewModel
@@ -38,7 +38,7 @@ class DeviceViewModel @Inject constructor(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, errorMessage = "") }
             registerDeviceUseCase(deviceId)
-                .onSuccess { _events.send(DeviceEvent.NavigateToGuardian) }
+                .onSuccess { _events.send(DeviceEvent.Registered) }
                 .onFailure { error ->
                     _uiState.update { it.copy(isLoading = false, errorMessage = error.message ?: "기기 등록에 실패했습니다.") }
                 }

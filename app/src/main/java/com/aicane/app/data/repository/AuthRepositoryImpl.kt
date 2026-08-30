@@ -4,6 +4,7 @@ import com.aicane.app.data.local.TokenStorage
 import com.aicane.app.data.remote.api.AuthApi
 import com.aicane.app.data.remote.dto.auth.GoogleLoginRequest
 import com.aicane.app.data.remote.dto.auth.LoginRequest
+import com.aicane.app.data.remote.dto.auth.ResendCodeRequest
 import com.aicane.app.data.remote.dto.auth.SignupRequest
 import com.aicane.app.data.remote.dto.auth.VerifyEmailRequest
 import com.aicane.app.domain.repository.AuthRepository
@@ -24,6 +25,9 @@ class AuthRepositoryImpl @Inject constructor(
             tokenStorage.userName  = name
             tokenStorage.userEmail = email
         }
+
+    override suspend fun resendCode(email: String): Result<Unit> =
+        runCatching { authApi.resendCode(ResendCodeRequest(email)) }
 
     override suspend fun verifyEmail(email: String, code: String): Result<Unit> =
         runCatching { authApi.verifyEmail(VerifyEmailRequest(email, code)) }

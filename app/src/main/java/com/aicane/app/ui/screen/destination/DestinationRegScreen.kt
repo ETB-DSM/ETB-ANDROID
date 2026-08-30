@@ -11,7 +11,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.destination.DestinationRegViewModel
@@ -31,7 +30,7 @@ fun DestinationRegScreen(
 ) {
     var name by remember { mutableStateOf(prefilledName) }
     var targetText by remember { mutableStateOf("") }
-    var radius by remember { mutableStateOf("30") }
+    var radius by remember { mutableStateOf(30) }
 
     val uiState by viewModel.uiState.collectAsState()
 
@@ -140,14 +139,30 @@ fun DestinationRegScreen(
 
             Spacer(Modifier.height(16.dp))
 
-            AiCaneTextField(
-                value = radius,
-                onValueChange = { radius = it },
-                label = "도착 반경 (m)",
-                placeholder = "30",
-                keyboardType = KeyboardType.Number,
-                caption = "이 거리 이내 진입 시 도착으로 간주합니다.",
-            )
+            Text(text = "도착 인식 반경", style = BodySm, color = TextBody)
+            Spacer(Modifier.height(6.dp))
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                listOf(10, 30, 50).forEach { option ->
+                    val selected = option == radius
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(48.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(if (selected) Ink else CanvasSoft)
+                            .clickable { radius = option },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Text(
+                            text = "${option}m",
+                            style = BodyMdStrong,
+                            color = if (selected) OnInk else Ink,
+                        )
+                    }
+                }
+            }
+            Spacer(Modifier.height(6.dp))
+            Text(text = "이 거리 이내 진입 시 도착으로 간주합니다.", style = Caption, color = TextMute)
 
             Spacer(Modifier.height(32.dp))
         }
@@ -160,14 +175,13 @@ fun DestinationRegScreen(
                     targetText = targetText,
                     latitude = prefilledLat,
                     longitude = prefilledLng,
-                    radius = radius.toDoubleOrNull() ?: 30.0,
+                    radius = radius.toDouble(),
                 )
             },
             isLoading = uiState.isLoading,
             enabled = name.isNotBlank()
                 && prefilledAddress.isNotBlank()
                 && targetText.isNotBlank()
-                && radius.toDoubleOrNull() != null
                 && !uiState.isLoading,
         )
 

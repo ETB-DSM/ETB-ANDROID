@@ -2,6 +2,8 @@ package com.aicane.app.presentation.mypage
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.aicane.app.domain.model.Device
+import com.aicane.app.domain.model.Guardian
 import com.aicane.app.domain.usecase.auth.GetUserInfoUseCase
 import com.aicane.app.domain.usecase.auth.LogoutUseCase
 import com.aicane.app.domain.usecase.device.DeleteDeviceUseCase
@@ -36,15 +38,17 @@ class MypageViewModel @Inject constructor(
     data class UiState(
         val userName: String = "",
         val userEmail: String = "",
-        val deviceId: String = "",
-        val guardianId: String = "",
-        val guardianName: String = "",
-        val guardianPhone: String = "",
+        val devices: List<Device> = emptyList(),
+        val guardians: List<Guardian> = emptyList(),
         val isLoading: Boolean = false,
         val errorMessage: String = "",
-        val showDeleteDeviceDialog: Boolean = false,
-        val showDeleteGuardianDialog: Boolean = false,
-    )
+        val deviceToDelete: Device? = null,
+        val guardianToDelete: Guardian? = null,
+    ) {
+        // 최대 5개(백엔드 DEVICE_LIMIT_EXCEEDED / GUARDIAN_LIMIT_EXCEEDED 정책과 동일)
+        val canAddDevice: Boolean get() = devices.size < 5
+        val canAddGuardian: Boolean get() = guardians.size < 5
+    }
 
     private val _uiState = MutableStateFlow(UiState())
     val uiState: StateFlow<UiState> = _uiState.asStateFlow()
@@ -64,34 +68,27 @@ class MypageViewModel @Inject constructor(
             val deviceResult   = getDevicesUseCase()
             val guardianResult = getGuardiansUseCase()
 
-            val deviceId      = deviceResult.getOrNull()?.firstOrNull()?.deviceId ?: ""
-            val guardianId    = guardianResult.getOrNull()?.firstOrNull()?.guardianId ?: ""
-            val guardianName  = guardianResult.getOrNull()?.firstOrNull()?.name ?: ""
-            val guardianPhone = guardianResult.getOrNull()?.firstOrNull()?.phone ?: ""
-
             val error = deviceResult.exceptionOrNull() ?: guardianResult.exceptionOrNull()
             _uiState.update {
                 it.copy(
-                    deviceId      = deviceId,
-                    guardianId    = guardianId,
-                    guardianName  = guardianName,
-                    guardianPhone = guardianPhone,
-                    isLoading     = false,
-                    errorMessage  = if (error != null) "정보를 불러오지 못했습니다." else "",
+                    devices      = deviceResult.getOrNull() ?: it.devices,
+                    guardians    = guardianResult.getOrNull() ?: it.guardians,
+                    isLoading    = false,
+                    errorMessage = if (error != null) "정보를 불러오지 못했습니다." else "",
                 )
             }
         }
     }
 
-    fun confirmDeleteDevice()   { _uiState.update { it.copy(showDeleteDeviceDialog = true) } }
-    fun cancelDeleteDevice()    { _uiState.update { it.copy(showDeleteDeviceDialog = false) } }
-    fun confirmDeleteGuardian() { _uiState.update { it.copy(showDeleteGuardianDialog = true) } }
-    fun cancelDeleteGuardian()  { _uiState.update { it.copy(showDeleteGuardianDialog = false) } }
+    fun confirmDeleteDevice(device: Device)   { _uiState.update { it.copy(deviceToDelete = device) } }
+    fun cancelDeleteDevice()                  { _uiState.update { it.copy(deviceToDelete = null) } }
+    fun confirmDeleteGuardian(guardian: Guardian) { _uiState.update { it.copy(guardianToDelete = guardian) } }
+    fun cancelDeleteGuardian()                { _uiState.update { it.copy(guardianToDelete = null) } }
 
     fun deleteDevice() {
-        val deviceId = _uiState.value.deviceId
+        val deviceId = _uiState.value.deviceToDelete?.deviceId ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(showDeleteDeviceDialog = false) }
+            _uiState.update { it.copy(deviceToDelete = null) }
             deleteDeviceUseCase(deviceId)
                 .onSuccess { load() }
                 .onFailure { error ->
@@ -101,9 +98,9 @@ class MypageViewModel @Inject constructor(
     }
 
     fun deleteGuardian() {
-        val guardianId = _uiState.value.guardianId
+        val guardianId = _uiState.value.guardianToDelete?.guardianId ?: return
         viewModelScope.launch {
-            _uiState.update { it.copy(showDeleteGuardianDialog = false) }
+            _uiState.update { it.copy(guardianToDelete = null) }
             deleteGuardianUseCase(guardianId)
                 .onSuccess { load() }
                 .onFailure { error ->

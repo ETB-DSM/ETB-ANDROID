@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.aicane.app.domain.model.NavigationEndOutcome
 import com.aicane.app.presentation.app.AppViewModel
 import com.aicane.app.presentation.auth.LoginEvent
 import com.aicane.app.presentation.auth.LoginViewModel
@@ -72,7 +73,7 @@ fun NavGraph(
                 viewModel.events.collect { event ->
                     when (event) {
                         is LoginEvent.NavigateAfterLogin -> {
-                            val dest = if (event.isFirst) Screen.Device.route else Screen.DestinationList.route
+                            val dest = if (event.isFirst) Screen.Device.createRoute() else Screen.DestinationList.route
                             navController.navigate(dest) { popUpTo(Screen.Login.route) { inclusive = true } }
                         }
                     }
@@ -91,7 +92,7 @@ fun NavGraph(
                         is SignupEvent.NavigateToVerify ->
                             navController.navigate(Screen.Verify.createRoute(event.email))
                         is SignupEvent.NavigateComplete ->
-                            navController.navigate(Screen.Device.route) {
+                            navController.navigate(Screen.Device.createRoute()) {
                                 popUpTo(Screen.Signup.route) { inclusive = true }
                             }
                     }
@@ -124,26 +125,46 @@ fun NavGraph(
                 viewModel = viewModel,
             )
         }
-        composable(Screen.Device.route) {
+        composable(
+            route = Screen.Device.route,
+            arguments = listOf(navArgument("standalone") { type = NavType.BoolType; defaultValue = false }),
+        ) { backStackEntry ->
+            val standalone = backStackEntry.arguments?.getBoolean("standalone") ?: false
             val viewModel: DeviceViewModel = hiltViewModel()
             LaunchedEffect(viewModel) {
                 viewModel.events.collect { event ->
                     when (event) {
-                        DeviceEvent.NavigateToGuardian ->
-                            navController.navigate(Screen.Guardian.route)
+                        DeviceEvent.Registered ->
+                            if (standalone) {
+                                navController.popBackStack()
+                            } else {
+                                navController.navigate(Screen.Guardian.createRoute())
+                            }
                     }
                 }
             }
-            DeviceScreen(viewModel = viewModel)
+            DeviceScreen(
+                standalone = standalone,
+                onBack     = { navController.popBackStack() },
+                viewModel  = viewModel,
+            )
         }
-        composable(Screen.Guardian.route) {
+        composable(
+            route = Screen.Guardian.route,
+            arguments = listOf(navArgument("standalone") { type = NavType.BoolType; defaultValue = false }),
+        ) { backStackEntry ->
+            val standalone = backStackEntry.arguments?.getBoolean("standalone") ?: false
             val viewModel: GuardianViewModel = hiltViewModel()
             LaunchedEffect(viewModel) {
                 viewModel.events.collect { event ->
                     when (event) {
-                        GuardianEvent.NavigateToDestinationList ->
-                            navController.navigate(Screen.DestinationList.route) {
-                                popUpTo(Screen.Device.route) { inclusive = true }
+                        GuardianEvent.Registered ->
+                            if (standalone) {
+                                navController.popBackStack()
+                            } else {
+                                navController.navigate(Screen.DestinationList.route) {
+                                    popUpTo(Screen.Device.route) { inclusive = true }
+                                }
                             }
                     }
                 }
@@ -154,7 +175,9 @@ fun NavGraph(
                         popUpTo(Screen.Device.route) { inclusive = true }
                     }
                 },
-                viewModel = viewModel,
+                standalone = standalone,
+                onBack     = { navController.popBackStack() },
+                viewModel  = viewModel,
             )
         }
         composable(Screen.DestinationList.route) {
@@ -236,11 +259,14 @@ fun NavGraph(
             ),
         ) { backStackEntry ->
             val viewModel: NavigationViewModel = hiltViewModel()
+            val destName = backStackEntry.arguments?.getString("destName") ?: "목적지"
             LaunchedEffect(viewModel) {
                 viewModel.events.collect { event ->
                     when (event) {
-                        NavigationEvent.NavigateToEnd ->
-                            navController.navigate(Screen.NavigationEnd.route) {
+                        is NavigationEvent.NavigateToEnd ->
+                            navController.navigate(
+                                Screen.NavigationEnd.createRoute(outcome = event.outcome.name, destName = destName)
+                            ) {
                                 popUpTo(Screen.Navigation.route) { inclusive = true }
                             }
                     }
@@ -251,13 +277,24 @@ fun NavGraph(
                 destLat    = backStackEntry.arguments?.getFloat("destLat")?.toDouble() ?: 0.0,
                 destLng    = backStackEntry.arguments?.getFloat("destLng")?.toDouble() ?: 0.0,
                 destRadius = backStackEntry.arguments?.getFloat("destRadius")?.toDouble() ?: 30.0,
-                destName   = backStackEntry.arguments?.getString("destName") ?: "목적지",
+                destName   = destName,
                 viewModel  = viewModel,
             )
         }
-        composable(Screen.NavigationEnd.route) {
+        composable(
+            route = Screen.NavigationEnd.route,
+            arguments = listOf(
+                navArgument("outcome")  { type = NavType.StringType; defaultValue = NavigationEndOutcome.ARRIVED.name },
+                navArgument("destName") { type = NavType.StringType; defaultValue = "목적지" },
+            ),
+        ) { backStackEntry ->
+            val outcome = runCatching {
+                NavigationEndOutcome.valueOf(backStackEntry.arguments?.getString("outcome").orEmpty())
+            }.getOrDefault(NavigationEndOutcome.ARRIVED)
             NavigationEndScreen(
                 onHome = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.NavigationEnd.route) { inclusive = true } } },
+                outcome = outcome,
+                destination = backStackEntry.arguments?.getString("destName") ?: "목적지",
             )
         }
         composable(Screen.Mypage.route) {
@@ -273,7 +310,9 @@ fun NavGraph(
                 }
             }
             MypageScreen(
-                onBack    = { navController.popBackStack() },
+                onBack             = { navController.popBackStack() },
+                onNavigateToAddDevice   = { navController.navigate(Screen.Device.createRoute(standalone = true)) },
+                onNavigateToAddGuardian = { navController.navigate(Screen.Guardian.createRoute(standalone = true)) },
                 viewModel = viewModel,
             )
         }
