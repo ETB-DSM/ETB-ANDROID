@@ -61,16 +61,19 @@ before popping the screen.
 **Purpose**: Enter the 6-digit code sent to the registered email.
 
 **Layout** (white background):
-- Top: Back arrow icon
+- Top: Back arrow icon + step indicator ("2/2 단계")
 - Headline: "이메일 인증" in `display-md`
-- Sub-text: "이메일로 전송된 6자리 코드를 입력해주세요." in `body-md` body color
-- Large 6-box OTP input row (each box: `text-input` style, square, `display-sm` center-aligned)
-- Primary CTA: "인증하기" (`button-primary`, full-width pill)
-- Below CTA: "코드 재전송" (`link-blue`, centered)
+- Email pill (`CanvasSoft`, full pill) showing the address the code was sent to
+- Sub-text: "위 주소로 전송된 6자리 인증 코드를 입력해주세요." in `body-md` body color
+- Large 6-box OTP input row (each box: `text-input` style, square, `display-md` center-aligned)
+- Below the boxes: "코드 재전송" (`link-blue`, centered) — disabled with a "N초 후 가능" countdown
+  for 30s after each resend; calls `POST /api/v1/auth/resend-code`
+- Primary CTA: "확인" (`button-primary`, full-width pill)
 
 **States**:
-- Wrong code: All boxes red border + error toast (`ex-toast`)
-- Verified: Brief success state → auto-navigate to Login
+- Wrong code: red border on active box + `caption` error message
+- Resend success: `caption` info message ("인증 코드를 다시 보냈어요."), 30s cooldown starts
+- Verified: auto-navigate to Login
 
 ---
 
