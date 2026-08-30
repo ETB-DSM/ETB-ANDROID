@@ -17,6 +17,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.aicane.app.domain.model.Device
+import com.aicane.app.domain.model.Guardian
 import com.aicane.app.presentation.mypage.MypageViewModel
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
@@ -27,22 +29,24 @@ import com.aicane.app.ui.theme.*
 @Composable
 fun MypageScreen(
     onBack: () -> Unit,
+    onNavigateToAddDevice: () -> Unit,
+    onNavigateToAddGuardian: () -> Unit,
     viewModel: MypageViewModel = hiltViewModel(),
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    if (uiState.showDeleteDeviceDialog) {
+    uiState.deviceToDelete?.let { device ->
         DeleteConfirmDialog(
-            title = "기기를 삭제할까요?",
+            title = "\"${device.name}\" 기기를 삭제할까요?",
             message = "삭제한 기기는 복구할 수 없어요.",
             onConfirm = { viewModel.deleteDevice() },
             onDismiss = { viewModel.cancelDeleteDevice() },
         )
     }
 
-    if (uiState.showDeleteGuardianDialog) {
+    uiState.guardianToDelete?.let { guardian ->
         DeleteConfirmDialog(
-            title = "보호자를 삭제할까요?",
+            title = "\"${guardian.name}\" 보호자를 삭제할까요?",
             message = "삭제한 보호자는 복구할 수 없어요.",
             onConfirm = { viewModel.deleteGuardian() },
             onDismiss = { viewModel.cancelDeleteGuardian() },
@@ -63,14 +67,12 @@ fun MypageScreen(
                 .padding(start = 16.dp, end = 16.dp, top = 16.dp, bottom = 30.dp),
         ) {
             Column(verticalArrangement = Arrangement.spacedBy(20.dp)) {
-                // 뒤로 버튼 + 타이틀
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     BackButton(onClick = onBack, isDark = true)
                     Spacer(Modifier.width(14.dp))
                     Text(text = "마이페이지", style = BodyMdStrong, color = TextMute)
                 }
 
-                // 이니셜 원 + 이름/이메일
                 val initial = uiState.userName.trim().firstOrNull()?.toString() ?: "?"
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
@@ -103,10 +105,9 @@ fun MypageScreen(
                     }
                 }
 
-                // Status chips
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val deviceChip = if (uiState.deviceId.isNotEmpty()) "지팡이 연결됨" else "지팡이 미연결"
-                    val guardChip  = if (uiState.guardianName.isNotEmpty()) "보호자 ${uiState.guardianName}" else "보호자 미등록"
+                    val deviceChip = if (uiState.devices.isNotEmpty()) "지팡이 ${uiState.devices.size}대 연결됨" else "지팡이 미연결"
+                    val guardChip  = if (uiState.guardians.isNotEmpty()) "보호자 ${uiState.guardians.size}명 등록됨" else "보호자 미등록"
                     listOf(deviceChip, guardChip).forEach { label ->
                         Box(
                             modifier = Modifier
@@ -132,21 +133,28 @@ fun MypageScreen(
                     CircularProgressIndicator(color = Ink)
                 }
             } else {
-                DeletableSectionCard(
-                    title = "등록된 기기",
-                    showDelete = uiState.deviceId.isNotEmpty(),
-                    onDelete = { viewModel.confirmDeleteDevice() },
+                ListSectionCard(
+                    title = "등록된 지팡이",
+                    isEmpty = uiState.devices.isEmpty(),
+                    emptyText = "등록된 지팡이가 없어요",
+                    canAdd = uiState.canAddDevice,
+                    onAdd = onNavigateToAddDevice,
                 ) {
-                    InfoRow(label = "기기 ID", value = uiState.deviceId.ifEmpty { "-" })
+                    uiState.devices.forEach { device ->
+                        DeviceRow(device = device, onDelete = { viewModel.confirmDeleteDevice(device) })
+                    }
                 }
 
-                DeletableSectionCard(
-                    title = "보호자 정보",
-                    showDelete = uiState.guardianId.isNotEmpty(),
-                    onDelete = { viewModel.confirmDeleteGuardian() },
+                ListSectionCard(
+                    title = "보호자",
+                    isEmpty = uiState.guardians.isEmpty(),
+                    emptyText = "등록된 보호자가 없어요",
+                    canAdd = uiState.canAddGuardian,
+                    onAdd = onNavigateToAddGuardian,
                 ) {
-                    InfoRow(label = "이름", value = uiState.guardianName.ifEmpty { "-" })
-                    InfoRow(label = "전화번호", value = uiState.guardianPhone.ifEmpty { "-" })
+                    uiState.guardians.forEach { guardian ->
+                        GuardianRow(guardian = guardian, onDelete = { viewModel.confirmDeleteGuardian(guardian) })
+                    }
                 }
 
                 if (uiState.errorMessage.isNotEmpty()) {
@@ -166,10 +174,12 @@ fun MypageScreen(
 }
 
 @Composable
-private fun DeletableSectionCard(
+private fun ListSectionCard(
     title: String,
-    showDelete: Boolean,
-    onDelete: () -> Unit,
+    isEmpty: Boolean,
+    emptyText: String,
+    canAdd: Boolean,
+    onAdd: () -> Unit,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(
@@ -178,7 +188,7 @@ private fun DeletableSectionCard(
             .clip(RoundedCornerShape(16.dp))
             .background(CanvasSoft)
             .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -186,27 +196,66 @@ private fun DeletableSectionCard(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Text(text = title, style = BodySmStrong, color = TextBody)
-            if (showDelete) {
-                Text(
-                    text = "삭제",
-                    style = BodySm,
-                    color = Error,
-                    modifier = Modifier.clickable { onDelete() },
-                )
+            if (canAdd) {
+                Box(
+                    modifier = Modifier
+                        .clip(RoundedCornerShape(999.dp))
+                        .background(Canvas)
+                        .border(1.dp, Ink, RoundedCornerShape(999.dp))
+                        .clickable { onAdd() }
+                        .padding(horizontal = 14.dp, vertical = 6.dp),
+                ) {
+                    Text(text = "+ 추가", style = BodySmStrong, color = Ink)
+                }
             }
         }
-        content()
+        if (isEmpty) {
+            Text(text = emptyText, style = BodySm, color = TextMute)
+        } else {
+            content()
+        }
     }
 }
 
 @Composable
-private fun InfoRow(label: String, value: String) {
+private fun DeviceRow(device: Device, onDelete: () -> Unit) {
     Row(
         modifier = Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Text(text = label, style = BodyMd, color = TextBody)
-        Text(text = value, style = BodyMdStrong, color = Ink)
+        Column {
+            Text(text = device.name, style = BodyMdStrong, color = Ink)
+            Spacer(Modifier.height(2.dp))
+            Text(text = device.deviceId, style = Caption, color = TextMute)
+        }
+        Text(
+            text = "해제",
+            style = BodySm,
+            color = Error,
+            modifier = Modifier.clickable { onDelete() },
+        )
+    }
+}
+
+@Composable
+private fun GuardianRow(guardian: Guardian, onDelete: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween,
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Column {
+            Text(text = guardian.name, style = BodyMdStrong, color = Ink)
+            Spacer(Modifier.height(2.dp))
+            Text(text = guardian.phone, style = Caption, color = TextMute)
+        }
+        Text(
+            text = "삭제",
+            style = BodySm,
+            color = Error,
+            modifier = Modifier.clickable { onDelete() },
+        )
     }
 }
 

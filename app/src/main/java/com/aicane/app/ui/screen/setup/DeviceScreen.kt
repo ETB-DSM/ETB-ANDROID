@@ -14,12 +14,15 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.device.DeviceViewModel
 import com.aicane.app.ui.component.AiCaneTextField
+import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.StepIndicator
 import com.aicane.app.ui.theme.*
 
 @Composable
 fun DeviceScreen(
+    standalone: Boolean = false,
+    onBack: () -> Unit = {},
     viewModel: DeviceViewModel = hiltViewModel(),
 ) {
     var deviceId by remember { mutableStateOf("") }
@@ -36,7 +39,7 @@ fun DeviceScreen(
     ) {
         Spacer(Modifier.height(24.dp))
 
-        StepIndicator(current = 1, total = 2)
+        if (standalone) BackButton(onClick = onBack) else StepIndicator(current = 1, total = 2)
 
         Column(
             modifier = Modifier

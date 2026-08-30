@@ -10,6 +10,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.guardian.GuardianViewModel
 import com.aicane.app.ui.component.AiCaneTextField
+import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.component.PillButtonVariant
 import com.aicane.app.ui.component.StepIndicator
@@ -17,7 +18,9 @@ import com.aicane.app.ui.theme.*
 
 @Composable
 fun GuardianScreen(
-    onSkip: () -> Unit,
+    onSkip: () -> Unit = {},
+    standalone: Boolean = false,
+    onBack: () -> Unit = {},
     viewModel: GuardianViewModel = hiltViewModel(),
 ) {
     var name by remember { mutableStateOf("") }
@@ -35,7 +38,7 @@ fun GuardianScreen(
     ) {
         Spacer(Modifier.height(24.dp))
 
-        StepIndicator(current = 2, total = 2)
+        if (standalone) BackButton(onClick = onBack) else StepIndicator(current = 2, total = 2)
 
         Spacer(Modifier.height(32.dp))
 
@@ -79,13 +82,14 @@ fun GuardianScreen(
             enabled = name.isNotBlank() && phone.isNotBlank() && !uiState.isLoading,
         )
 
-        Spacer(Modifier.height(12.dp))
-
-        FullWidthPillButton(
-            text = "나중에 등록하기",
-            onClick = onSkip,
-            variant = PillButtonVariant.Subtle,
-        )
+        if (!standalone) {
+            Spacer(Modifier.height(12.dp))
+            FullWidthPillButton(
+                text = "나중에 등록하기",
+                onClick = onSkip,
+                variant = PillButtonVariant.Subtle,
+            )
+        }
 
         Spacer(Modifier.height(24.dp))
     }
