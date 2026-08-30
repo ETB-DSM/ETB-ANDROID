@@ -3,13 +3,16 @@ package com.aicane.app.presentation.navigation
 import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import com.aicane.app.domain.model.DeviceStatus
 import com.aicane.app.domain.model.NavigationAction
+import com.aicane.app.domain.model.NavigationEndOutcome
 import com.aicane.app.domain.model.NavigationInstruction
+import com.aicane.app.domain.usecase.device.GetDeviceStatusUseCase
+import com.aicane.app.domain.usecase.device.GetPairedDeviceIdUseCase
 import com.aicane.app.domain.usecase.navigation.FetchRouteUseCase
 import com.aicane.app.domain.usecase.navigation.UpdateSessionStatusUseCase
 import com.aicane.app.navigation.NavigationConfig
 import com.aicane.app.navigation.NavigationStateHolder
-import com.aicane.app.domain.model.NavigationEndOutcome
 import com.aicane.app.service.NavigationService
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -17,16 +20,20 @@ import com.google.android.gms.location.LocationServices
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.suspendCancellableCoroutine
 import javax.inject.Inject
 import kotlin.coroutines.resume
+
+private const val DEVICE_STATUS_POLL_MS = 30_000L
 
 sealed class NavigationEvent {
     data class NavigateToEnd(val outcome: NavigationEndOutcome) : NavigationEvent()
@@ -36,6 +43,8 @@ sealed class NavigationEvent {
 class NavigationViewModel @Inject constructor(
     private val fetchRouteUseCase: FetchRouteUseCase,
     private val updateStatusUseCase: UpdateSessionStatusUseCase,
+    private val getPairedDeviceIdUseCase: GetPairedDeviceIdUseCase,
+    private val getDeviceStatusUseCase: GetDeviceStatusUseCase,
     private val stateHolder: NavigationStateHolder,
     private val config: NavigationConfig,
     @ApplicationContext private val context: Context,
@@ -43,6 +52,7 @@ class NavigationViewModel @Inject constructor(
 
     data class UiState(
         val instruction: NavigationInstruction? = null,
+        val deviceStatus: DeviceStatus? = null,
         val isLoading: Boolean = false,
         val errorMessage: String = "",
     )
@@ -93,6 +103,18 @@ class NavigationViewModel @Inject constructor(
                         it.copy(isLoading = false, errorMessage = error.message ?: "경로를 불러오지 못했습니다.")
                     }
                 }
+        }
+
+        getPairedDeviceIdUseCase()?.let { deviceId -> pollDeviceStatus(deviceId) }
+    }
+
+    private fun pollDeviceStatus(deviceId: String) {
+        viewModelScope.launch {
+            while (isActive) {
+                getDeviceStatusUseCase(deviceId)
+                    .onSuccess { status -> _uiState.update { it.copy(deviceStatus = status) } }
+                delay(DEVICE_STATUS_POLL_MS)
+            }
         }
     }
 

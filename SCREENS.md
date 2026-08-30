@@ -212,9 +212,12 @@ before popping the screen.
 **Bottom band** — white (`hero-band-light`), ~60% height:
 - Destination name in `display-sm` ink
 - Sub-text: "길안내 중" in `body-sm` body color
-- Device status row (`card-soft-tinted`, compact):
-  - Battery icon + percentage
-  - Connection status dot (black = connected, gray = disconnected)
+- Device status row (`card-soft-tinted`, compact) — polled every 30s from
+  `GET /api/v1/devices/:deviceId/status` for the paired device
+  (`TokenStorage.deviceId`); hidden entirely if no device is paired or the
+  first poll hasn't returned yet:
+  - Battery percentage
+  - Connection status dot (ink = `networkOk`, gray = otherwise)
 - "길안내 종료" button (`button-secondary`, full-width pill, red text override for danger action)
 
 **Action → visual mapping**:
