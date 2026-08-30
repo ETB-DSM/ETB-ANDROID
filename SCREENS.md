@@ -37,18 +37,18 @@ The app is used while walking outdoors.
 
 **Purpose**: Create a new account with email and password.
 
-**Layout** (scrollable, white background):
-- Top: Back arrow icon (`icon-button-circular`)
-- Headline: "회원가입" in `display-md`
-- Form card (`ex-auth-form-card`):
-  - Email input (`text-input`) — label: "이메일"
-  - Password input (`text-input`) — label: "비밀번호"
-  - Password confirm input (`text-input`) — label: "비밀번호 확인"
-  - Name input (`text-input`) — label: "이름"
-- Primary CTA: "다음" (`button-primary`, full-width pill)
-- Divider line with "또는" text in `body-sm` muted
-- Google login button (`button-secondary`, full-width pill, Google logo icon left)
-- Bottom link: "이미 계정이 있으신가요? 로그인" (`link-blue`)
+**Layout**: a 3-step wizard (`StepIndicator`, "N/3 단계"), not a single form — each
+step transitions with a fade + slide, back arrow steps back within the wizard
+before popping the screen.
+- Top: Back arrow icon + step indicator ("N/3 단계")
+- **Step 1 — Email**: Headline "회원가입" (`display-md`), email input (`text-input`,
+  label "이메일"), divider "또는", Google 가입 button (`button-secondary`, full-width
+  pill), primary CTA "다음"
+- **Step 2 — Name**: Headline "이름", name input (label "이름", caption: 보호자에게
+  표시된다는 안내), primary CTA "다음"
+- **Step 3 — Password**: Headline "비밀번호", password input + password confirm
+  input (inline mismatch error), primary CTA "회원가입"
+- Bottom link (step 1 only): "이미 계정이 있으신가요? 로그인" (`link-blue`)
 
 **States**:
 - Input error: red border + `caption` error message below field
