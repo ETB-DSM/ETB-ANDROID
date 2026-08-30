@@ -9,6 +9,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.aicane.app.domain.model.NavigationEndOutcome
 import com.aicane.app.presentation.app.AppViewModel
 import com.aicane.app.presentation.auth.LoginEvent
 import com.aicane.app.presentation.auth.LoginViewModel
@@ -236,11 +237,14 @@ fun NavGraph(
             ),
         ) { backStackEntry ->
             val viewModel: NavigationViewModel = hiltViewModel()
+            val destName = backStackEntry.arguments?.getString("destName") ?: "목적지"
             LaunchedEffect(viewModel) {
                 viewModel.events.collect { event ->
                     when (event) {
-                        NavigationEvent.NavigateToEnd ->
-                            navController.navigate(Screen.NavigationEnd.route) {
+                        is NavigationEvent.NavigateToEnd ->
+                            navController.navigate(
+                                Screen.NavigationEnd.createRoute(outcome = event.outcome.name, destName = destName)
+                            ) {
                                 popUpTo(Screen.Navigation.route) { inclusive = true }
                             }
                     }
@@ -251,13 +255,24 @@ fun NavGraph(
                 destLat    = backStackEntry.arguments?.getFloat("destLat")?.toDouble() ?: 0.0,
                 destLng    = backStackEntry.arguments?.getFloat("destLng")?.toDouble() ?: 0.0,
                 destRadius = backStackEntry.arguments?.getFloat("destRadius")?.toDouble() ?: 30.0,
-                destName   = backStackEntry.arguments?.getString("destName") ?: "목적지",
+                destName   = destName,
                 viewModel  = viewModel,
             )
         }
-        composable(Screen.NavigationEnd.route) {
+        composable(
+            route = Screen.NavigationEnd.route,
+            arguments = listOf(
+                navArgument("outcome")  { type = NavType.StringType; defaultValue = NavigationEndOutcome.ARRIVED.name },
+                navArgument("destName") { type = NavType.StringType; defaultValue = "목적지" },
+            ),
+        ) { backStackEntry ->
+            val outcome = runCatching {
+                NavigationEndOutcome.valueOf(backStackEntry.arguments?.getString("outcome").orEmpty())
+            }.getOrDefault(NavigationEndOutcome.ARRIVED)
             NavigationEndScreen(
                 onHome = { navController.navigate(Screen.DestinationList.route) { popUpTo(Screen.NavigationEnd.route) { inclusive = true } } },
+                outcome = outcome,
+                destination = backStackEntry.arguments?.getString("destName") ?: "목적지",
             )
         }
         composable(Screen.Mypage.route) {

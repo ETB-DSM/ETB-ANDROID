@@ -9,6 +9,7 @@ import com.aicane.app.domain.usecase.navigation.FetchRouteUseCase
 import com.aicane.app.domain.usecase.navigation.UpdateSessionStatusUseCase
 import com.aicane.app.navigation.NavigationConfig
 import com.aicane.app.navigation.NavigationStateHolder
+import com.aicane.app.domain.model.NavigationEndOutcome
 import com.aicane.app.service.NavigationService
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -28,7 +29,7 @@ import javax.inject.Inject
 import kotlin.coroutines.resume
 
 sealed class NavigationEvent {
-    object NavigateToEnd : NavigationEvent()
+    data class NavigateToEnd(val outcome: NavigationEndOutcome) : NavigationEvent()
 }
 
 @HiltViewModel
@@ -57,7 +58,7 @@ class NavigationViewModel @Inject constructor(
             stateHolder.currentInstruction.collect { instruction ->
                 _uiState.update { it.copy(instruction = instruction, isLoading = false) }
                 if (instruction?.action == NavigationAction.ARRIVED) {
-                    _events.send(NavigationEvent.NavigateToEnd)
+                    _events.send(NavigationEvent.NavigateToEnd(NavigationEndOutcome.ARRIVED))
                 }
             }
         }
@@ -100,7 +101,7 @@ class NavigationViewModel @Inject constructor(
             runCatching { updateStatusUseCase(sessionId, "canceled") }
             context.stopService(Intent(context, NavigationService::class.java))
             stateHolder.reset()
-            _events.send(NavigationEvent.NavigateToEnd)
+            _events.send(NavigationEvent.NavigateToEnd(NavigationEndOutcome.CANCELED))
         }
     }
 }

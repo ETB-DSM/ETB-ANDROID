@@ -10,16 +10,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.aicane.app.domain.model.NavigationEndOutcome
 import com.aicane.app.ui.component.FullWidthPillButton
 import com.aicane.app.ui.theme.*
 
 @Composable
 fun NavigationEndScreen(
     onHome: () -> Unit,
+    outcome: NavigationEndOutcome = NavigationEndOutcome.ARRIVED,
     destination: String = "목적지",
-    walkingTime: String = "12분",
-    walkingDistance: String = "980m",
 ) {
+    val headline = when (outcome) {
+        NavigationEndOutcome.ARRIVED  -> "도착했어요!"
+        NavigationEndOutcome.CANCELED -> "길안내를 종료했어요"
+    }
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -44,7 +49,7 @@ fun NavigationEndScreen(
         Spacer(Modifier.height(20.dp))
 
         Text(
-            text = "도착했어요!",
+            text = headline,
             style = DisplayMd,
             color = Ink,
             textAlign = TextAlign.Center,

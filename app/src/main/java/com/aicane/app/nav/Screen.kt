@@ -34,6 +34,9 @@ sealed class Screen(val route: String) {
             "&destRadius=${destRadius.toFloat()}" +
             "&destName=${android.net.Uri.encode(destName)}"
     }
-    data object NavigationEnd   : Screen("navigation_end")
+    data object NavigationEnd   : Screen("navigation_end?outcome={outcome}&destName={destName}") {
+        fun createRoute(outcome: String, destName: String) =
+            "navigation_end?outcome=$outcome&destName=${android.net.Uri.encode(destName)}"
+    }
     data object Mypage          : Screen("mypage")
 }
