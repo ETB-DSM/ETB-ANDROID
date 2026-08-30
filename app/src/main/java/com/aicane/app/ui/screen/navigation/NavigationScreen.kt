@@ -165,6 +165,28 @@ fun NavigationScreen(
                         }
                     }
 
+                    if (turnHint != null && instruction?.distanceToNextTurn != null) {
+                        Spacer(Modifier.height(20.dp))
+                        Text(text = "다음 안내", style = Caption, color = TextMute)
+                        Spacer(Modifier.height(8.dp))
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(CanvasSoft)
+                                .padding(horizontal = 16.dp, vertical = 14.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text(text = turnHint, style = BodyMdStrong, color = Ink)
+                            Text(
+                                text = "약 ${instruction.distanceToNextTurn.toInt()}m",
+                                style = BodySm,
+                                color = TextBody,
+                            )
+                        }
+                    }
+
                     if (uiState.errorMessage.isNotEmpty()) {
                         Spacer(Modifier.height(16.dp))
                         Text(text = uiState.errorMessage, style = BodySm, color = ErrorRed)
