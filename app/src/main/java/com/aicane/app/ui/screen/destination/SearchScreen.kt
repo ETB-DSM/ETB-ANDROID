@@ -1,5 +1,10 @@
 package com.aicane.app.ui.screen.destination
 
+import android.Manifest
+import android.annotation.SuppressLint
+import android.content.pm.PackageManager
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -19,11 +24,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.aicane.app.presentation.destination.SearchViewModel
 import com.aicane.app.ui.component.BackButton
 import com.aicane.app.ui.theme.*
+import com.google.android.gms.location.LocationServices
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
 
 data class PlaceResult(
     val name: String,
@@ -41,6 +52,41 @@ fun SearchScreen(
     var query by remember { mutableStateOf("") }
     val focusRequester = remember { FocusRequester() }
     val uiState by viewModel.uiState.collectAsState()
+
+    val context = LocalContext.current
+    val coroutineScope = rememberCoroutineScope()
+    var isLocatingCurrent by remember { mutableStateOf(false) }
+
+    @SuppressLint("MissingPermission")
+    fun useCurrentLocation() {
+        coroutineScope.launch {
+            isLocatingCurrent = true
+            val fusedClient = LocationServices.getFusedLocationProviderClient(context)
+            val location = suspendCancellableCoroutine { cont ->
+                fusedClient.lastLocation
+                    .addOnSuccessListener { loc -> cont.resume(loc) }
+                    .addOnFailureListener { cont.resume(null) }
+            }
+            isLocatingCurrent = false
+            if (location != null) {
+                onPlaceSelected(PlaceResult("현재 위치", "현재 위치", location.latitude, location.longitude))
+            }
+        }
+    }
+
+    val locationPermissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted -> if (isGranted) useCurrentLocation() }
+
+    val onUseCurrentLocationClick: () -> Unit = {
+        if (ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION)
+            == PackageManager.PERMISSION_GRANTED
+        ) {
+            useCurrentLocation()
+        } else {
+            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
 
     LaunchedEffect(Unit) { focusRequester.requestFocus() }
 
@@ -121,17 +167,37 @@ fun SearchScreen(
 
         when {
             query.isBlank() -> {
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(
-                        text = "장소명이나 주소를 입력하세요",
-                        style = BodyMd,
-                        color = TextMute,
-                    )
+                Column(modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                            .clip(RoundedCornerShape(999.dp))
+                            .background(CanvasSoft)
+                            .clickable(enabled = !isLocatingCurrent) { onUseCurrentLocationClick() }
+                            .padding(horizontal = 20.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(18.dp)
+                                .border(2.dp, TextBody, CircleShape),
+                        )
+                        Text(
+                            text = if (isLocatingCurrent) "현재 위치를 확인하는 중..." else "현재 위치를 목적지로",
+                            style = BodyMdStrong,
+                            color = Ink,
+                        )
+                    }
+                    Spacer(Modifier.height(24.dp))
+                    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+                        Text(
+                            text = "장소명이나 주소를 입력하세요",
+                            style = BodyMd,
+                            color = TextMute,
+                        )
+                    }
                 }
             }
             uiState.isLoading -> {
