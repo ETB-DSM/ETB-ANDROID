@@ -200,6 +200,27 @@ Access Token + Refresh Token 재발급 (token rotation).
 
 ---
 
+#### `GET /api/v1/devices/:deviceId/status`
+
+디바이스 상태 조회 (앱/보호자 화면용). Embedded API의 `POST /api/device/status`로 Orange Pi가 올린 최신 상태를 반환한다.
+
+**Response** `200`
+```json
+{
+  "deviceId": "aicane_001",
+  "battery": 85,
+  "lidarOk": true,
+  "cameraOk": true,
+  "gpsOk": true,
+  "networkOk": true,
+  "createdAt": "2026-08-21T00:00:00Z"
+}
+```
+
+**Error** `404 NOT_FOUND` — 아직 상태가 한 번도 보고되지 않은 디바이스
+
+---
+
 ### 보호자 (Guardian) 🔒
 
 #### `POST /api/v1/guardians`
@@ -346,9 +367,79 @@ OCR 결과 저장.
 
 ---
 
-### 길안내 세션 (Navigation)
+### 길안내 세션 (Navigation) 🔒
 
-> 세션 생성/명령 저장/상태 변경은 App API(v1, JWT)가 아니라 **Embedded API**(`/api/navigation/sessions...`, userId/deviceId 기반)로 제공된다. 앱도 이 경로를 그대로 호출한다. 자세한 내용은 아래 Embedded API 섹션 참고.
+#### `POST /api/v1/navigation/sessions`
+
+길안내 세션 생성.
+
+**Request Body**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| destinationId | string | ✓ | 목적지 ID |
+| deviceId | string | | 디바이스 ID |
+| startLatitude | float64 | | 출발 위도 |
+| startLongitude | float64 | | 출발 경도 |
+
+**Response** `201`
+```json
+{
+  "sessionId": "uuid",
+  "status": "active",
+  "startLatitude": 37.123,
+  "startLongitude": 127.456,
+  "createdAt": "2026-08-21T00:00:00Z"
+}
+```
+
+---
+
+#### `POST /api/v1/navigation/sessions/:sessionId/instructions`
+
+길안내 명령 저장 (앱 → 서버, Orange Pi가 polling).
+
+**Request Body**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| action | string | ✓ | `straight` \| `prepare_left` \| `left` \| `prepare_right` \| `right` \| `arrived` \| `reroute` |
+| distanceMeters | int32 | | 다음 분기점까지 거리(m) |
+| message | string | | 음성 안내 메시지 |
+
+**Response** `201`
+```json
+{
+  "instructionId": "uuid",
+  "sessionId": "uuid",
+  "action": "straight",
+  "distanceMeters": 150,
+  "message": "150m 직진하세요.",
+  "createdAt": "2026-08-21T00:00:00Z"
+}
+```
+
+---
+
+#### `PATCH /api/v1/navigation/sessions/:sessionId/status`
+
+세션 상태 변경.
+
+**Request Body**
+
+| 필드 | 타입 | 필수 | 설명 |
+|------|------|------|------|
+| status | string | ✓ | `active` \| `paused` \| `arrived` \| `canceled` \| `error` |
+| reason | string | | 변경 사유 |
+
+**Response** `200`
+```json
+{
+  "sessionId": "uuid",
+  "status": "arrived",
+  "createdAt": "2026-08-21T00:00:00Z"
+}
+```
 
 ---
 
@@ -440,57 +531,41 @@ SOS 요청 (Orange Pi → 서버).
 
 ---
 
-#### `POST /api/devices/status`
+#### `POST /api/device/status`
 
-디바이스 상태 업데이트. Orange Pi 상태 주기 전송에 사용한다.
+디바이스 상태 업데이트.
 
 **Request Body**
 
 | 필드 | 타입 | 필수 | 설명 |
 |------|------|------|------|
-| userId | string | ✓ | 사용자 ID |
 | deviceId | string | ✓ | 장치 ID |
-| battery | int32 | ✓ | 배터리 잔량 |
-| lidarStatus | string | | LiDAR 상태. `ok` \| `error` |
-| cameraStatus | string | | 카메라 상태. `ok` \| `error` |
-| gpsStatus | string | | GPS 상태. `ok` \| `error` |
-| networkStatus | string | | 네트워크 상태. `ok` \| `error` |
-| timestamp | string | | 상태 전송 시간 |
+| battery | int32 | ✓ | 배터리 잔량 (0~100) |
+| lidarOk | bool | | LiDAR 정상 여부 |
+| cameraOk | bool | | 카메라 정상 여부 |
+| gpsOk | bool | | GPS 정상 여부 |
+| networkOk | bool | | 네트워크 정상 여부 |
 
-**Response**
+**Response** `200`
 ```json
-{ "status": "OK", "message": "디바이스 상태가 업데이트되었습니다." }
+{
+  "deviceId": "aicane_001",
+  "battery": 85,
+  "lidarOk": true,
+  "cameraOk": true,
+  "gpsOk": true,
+  "networkOk": true,
+  "createdAt": "2026-08-21T00:00:00Z"
+}
 ```
 
 ---
 
-#### `GET /api/devices/{deviceId}/status`
+#### `GET /api/device/status/:deviceId`
 
-최신 디바이스 상태 조회. 앱 또는 보호자 화면에서 장치 상태 확인에 사용한다.
+최신 디바이스 상태 조회.
 
-**Request**
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| deviceId | string | ✓ | PathVariable. 조회할 장치 ID |
-
-**Response**
-```json
-{
-  "status": "OK",
-  "message": "디바이스 상태 조회에 성공했습니다.",
-  "data": {
-    "userId": "user_001",
-    "deviceId": "aicane_001",
-    "battery": 72,
-    "lidarStatus": "ok",
-    "cameraStatus": "ok",
-    "gpsStatus": "ok",
-    "networkStatus": "ok",
-    "timestamp": "2026-07-09T12:40:00+09:00"
-  }
-}
-```
+**Response** `200` — 위와 동일
 
 ---
 
@@ -544,55 +619,7 @@ OCR 결과 저장.
 
 ---
 
-#### `POST /api/navigation/sessions`
-
-길안내 세션 생성. 앱에서 목적지를 선택하고 길안내를 시작할 때 호출한다. 이후 instruction update/check, status update의 기준 세션이 된다.
-
-**Request Body**
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| userId | string | ✓ | 사용자 ID |
-| deviceId | string | ✓ | 장치 ID |
-| destinationId | string | ✓ | 선택한 목적지 ID |
-| startLatitude | float64 | ✓ | 길안내 시작 위도 |
-| startLongitude | float64 | ✓ | 길안내 시작 경도 |
-| timestamp | string | ✓ | 길안내 시작 시간 |
-
-**Response**
-```json
-{
-  "status": "CREATED",
-  "message": "길안내 세션이 생성되었습니다.",
-  "data": { "navigationSessionId": "nav_001" }
-}
-```
-
----
-
-#### `POST /api/navigation/sessions/{navigationSessionId}/instruction`
-
-길안내 명령 저장 (앱 → 서버). 앱이 보행 경로와 현재 위치를 기반으로 다음 방향 명령을 계산한 뒤 서버에 저장한다.
-
-**Request Body**
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| action | string | ✓ | `straight` \| `prepare_left` \| `left` \| `prepare_right` \| `right` \| `arrived` \| `reroute` \| `stop` \| `error` |
-| distanceMeters | int32 | | 해당 action까지 남은 거리 |
-| message | string | | 앱 표시용 안내 문구 |
-| latitude | float64 | | action 기준 위도 |
-| longitude | float64 | | action 기준 경도 |
-| timestamp | string | | action 계산 시간 |
-
-**Response**
-```json
-{ "status": "OK", "message": "길안내 명령이 업데이트되었습니다." }
-```
-
----
-
-#### `GET /api/navigation/sessions/{navigationSessionId}/instruction`
+#### `GET /api/navigation/sessions/:sessionId/instruction`
 
 최신 길안내 명령 조회 (Orange Pi polling).
 
@@ -606,25 +633,6 @@ OCR 결과 저장.
   "message": "30m 후 좌회전하세요.",
   "createdAt": "2026-08-21T00:00:00Z"
 }
-```
-
----
-
-#### `PATCH /api/navigation/sessions/{navigationSessionId}/status`
-
-길안내 세션 상태 변경. 목적지 도착, 사용자 중지, 경로 오류, 앱 종료 등의 상태 변경에 사용한다.
-
-**Request Body**
-
-| 필드 | 타입 | 필수 | 설명 |
-|------|------|------|------|
-| status | string | ✓ | `active` \| `paused` \| `arrived` \| `canceled` \| `error` |
-| reason | string | | 상태 변경 사유 |
-| timestamp | string | | 상태 변경 시간 |
-
-**Response**
-```json
-{ "status": "OK", "message": "길안내 세션 상태가 변경되었습니다." }
 ```
 
 ---
