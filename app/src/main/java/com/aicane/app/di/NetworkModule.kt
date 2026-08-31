@@ -5,7 +5,6 @@ import com.aicane.app.data.remote.interceptor.AuthInterceptor
 import com.aicane.app.data.remote.interceptor.RetryInterceptor
 import com.aicane.app.data.remote.interceptor.TokenAuthenticator
 import com.aicane.app.di.qualifier.AppClient
-import com.aicane.app.di.qualifier.EmbeddedClient
 import com.aicane.app.di.qualifier.RefreshClient
 import com.aicane.app.di.qualifier.TmapClient
 import com.jakewharton.retrofit2.converter.kotlinx.serialization.asConverterFactory
@@ -68,27 +67,6 @@ object NetworkModule {
 
     @Provides
     @Singleton
-    @EmbeddedClient
-    fun provideEmbeddedOkHttpClient(
-        retryInterceptor: RetryInterceptor,
-    ): OkHttpClient = OkHttpClient.Builder()
-        .addInterceptor(
-            HttpLoggingInterceptor().apply {
-                level = if (BuildConfig.DEBUG) {
-                    HttpLoggingInterceptor.Level.BODY
-                } else {
-                    HttpLoggingInterceptor.Level.NONE
-                }
-            }
-        )
-        .addInterceptor(retryInterceptor)
-        .connectTimeout(10, TimeUnit.SECONDS)
-        .readTimeout(15, TimeUnit.SECONDS)
-        .writeTimeout(15, TimeUnit.SECONDS)
-        .build()
-
-    @Provides
-    @Singleton
     @TmapClient
     fun provideTmapOkHttpClient(): OkHttpClient = OkHttpClient.Builder()
         .addInterceptor { chain ->
@@ -116,18 +94,6 @@ object NetworkModule {
     @AppClient
     fun provideAppRetrofit(
         @AppClient okHttpClient: OkHttpClient,
-        json: Json,
-    ): Retrofit = Retrofit.Builder()
-        .baseUrl(BuildConfig.BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(json.asConverterFactory("application/json".toMediaType()))
-        .build()
-
-    @Provides
-    @Singleton
-    @EmbeddedClient
-    fun provideEmbeddedRetrofit(
-        @EmbeddedClient okHttpClient: OkHttpClient,
         json: Json,
     ): Retrofit = Retrofit.Builder()
         .baseUrl(BuildConfig.BASE_URL)
