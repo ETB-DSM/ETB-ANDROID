@@ -1,9 +1,7 @@
 package com.aicane.app.di
 
-import com.aicane.app.data.remote.api.NavigationApi
 import com.aicane.app.data.remote.api.TmapPedestrianApi
 import com.aicane.app.data.repository.NavigationRepositoryImpl
-import com.aicane.app.di.qualifier.AppClient
 import com.aicane.app.di.qualifier.TmapClient
 import com.aicane.app.domain.repository.NavigationRepository
 import dagger.Binds
@@ -23,11 +21,6 @@ abstract class NavigationModule {
     abstract fun bindNavigationRepository(impl: NavigationRepositoryImpl): NavigationRepository
 
     companion object {
-        @Provides
-        @Singleton
-        fun provideNavigationApi(@AppClient retrofit: Retrofit): NavigationApi =
-            retrofit.create(NavigationApi::class.java)
-
         @Provides
         @Singleton
         fun provideTmapPedestrianApi(@TmapClient retrofit: Retrofit): TmapPedestrianApi =
