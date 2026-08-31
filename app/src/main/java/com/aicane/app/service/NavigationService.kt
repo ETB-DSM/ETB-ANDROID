@@ -77,6 +77,8 @@ class NavigationService : Service() {
                     action             = guidance.action,
                     distanceMeters     = guidance.distanceToDest,
                     message            = guidance.action.toKoreanMessage(guidance.distanceToNextTurn, guidance.nextTurnType),
+                    latitude           = location.latitude,
+                    longitude          = location.longitude,
                     nextTurnType       = guidance.nextTurnType,
                     distanceToNextTurn = guidance.distanceToNextTurn,
                 )

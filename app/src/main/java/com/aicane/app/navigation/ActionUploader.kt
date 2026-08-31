@@ -27,6 +27,8 @@ class ActionUploader @Inject constructor(
                 action         = instruction.action,
                 distanceMeters = instruction.distanceMeters,
                 message        = instruction.message,
+                latitude       = instruction.latitude,
+                longitude      = instruction.longitude,
             )
             if (result.isSuccess) {
                 lastAction     = instruction.action

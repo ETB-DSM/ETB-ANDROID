@@ -5,6 +5,9 @@ import com.aicane.app.domain.repository.NavigationRepository
 import javax.inject.Inject
 
 class CreateSessionUseCase @Inject constructor(private val repository: NavigationRepository) {
-    suspend operator fun invoke(destinationId: String): Result<NavigationSession> =
-        repository.createSession(destinationId)
+    suspend operator fun invoke(
+        destinationId: String,
+        startLatitude: Double,
+        startLongitude: Double,
+    ): Result<NavigationSession> = repository.createSession(destinationId, startLatitude, startLongitude)
 }

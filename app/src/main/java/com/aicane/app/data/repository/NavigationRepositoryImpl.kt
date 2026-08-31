@@ -1,11 +1,12 @@
 package com.aicane.app.data.repository
 
 import android.util.Log
-import com.aicane.app.data.remote.api.NavigationApi
+import com.aicane.app.data.local.TokenStorage
+import com.aicane.app.data.remote.api.EmbeddedApi
 import com.aicane.app.data.remote.api.TmapPedestrianApi
-import com.aicane.app.data.remote.dto.navigation.CreateInstructionRequest
-import com.aicane.app.data.remote.dto.navigation.CreateSessionRequest
-import com.aicane.app.data.remote.dto.navigation.UpdateStatusRequest
+import com.aicane.app.data.remote.dto.embedded.CreateNavigationInstructionRequest
+import com.aicane.app.data.remote.dto.embedded.CreateNavigationSessionRequest
+import com.aicane.app.data.remote.dto.embedded.UpdateNavigationSessionStatusRequest
 import com.aicane.app.data.remote.dto.tmap.TmapPedestrianRequest
 import com.aicane.app.domain.model.NavigationAction
 import com.aicane.app.domain.model.NavigationSession
@@ -15,18 +16,39 @@ import com.aicane.app.domain.repository.NavigationRepository
 import kotlinx.serialization.json.jsonArray
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.double
+import java.time.Instant
 import javax.inject.Inject
 import javax.inject.Singleton
 
 @Singleton
 class NavigationRepositoryImpl @Inject constructor(
-    private val navigationApi: NavigationApi,
+    private val embeddedApi: EmbeddedApi,
     private val tmapPedestrianApi: TmapPedestrianApi,
+    private val tokenStorage: TokenStorage,
 ) : NavigationRepository {
 
-    override suspend fun createSession(destinationId: String): Result<NavigationSession> = runCatching {
-        val response = navigationApi.createSession(CreateSessionRequest(destinationId))
-        NavigationSession(response.sessionId)
+    override suspend fun createSession(
+        destinationId: String,
+        startLatitude: Double,
+        startLongitude: Double,
+    ): Result<NavigationSession> = runCatching {
+        val deviceId = tokenStorage.deviceId
+            ?: throw IllegalStateException("등록된 지팡이가 없어 길안내를 시작할 수 없습니다.")
+        val userId = tokenStorage.userId
+            ?: throw IllegalStateException("사용자 정보를 확인할 수 없습니다. 다시 로그인해주세요.")
+
+        val envelope = embeddedApi.createSession(
+            CreateNavigationSessionRequest(
+                userId          = userId,
+                deviceId        = deviceId,
+                destinationId   = destinationId,
+                startLatitude   = startLatitude,
+                startLongitude  = startLongitude,
+                timestamp       = Instant.now().toString(),
+            )
+        )
+        val data = envelope.data ?: error(envelope.message ?: "길안내 세션을 생성하지 못했습니다.")
+        NavigationSession(data.navigationSessionId)
     }
 
     override suspend fun fetchRoute(
@@ -93,14 +115,30 @@ class NavigationRepositoryImpl @Inject constructor(
         action: NavigationAction,
         distanceMeters: Double,
         message: String,
+        latitude: Double,
+        longitude: Double,
     ): Result<Unit> = runCatching {
-        navigationApi.createInstruction(
-            sessionId = sessionId,
-            request   = CreateInstructionRequest(action.name.lowercase(), distanceMeters.toInt(), message),
+        embeddedApi.createInstruction(
+            navigationSessionId = sessionId,
+            request = CreateNavigationInstructionRequest(
+                action         = action.name.lowercase(),
+                distanceMeters = distanceMeters.toInt(),
+                message        = message,
+                latitude       = latitude,
+                longitude      = longitude,
+                timestamp      = Instant.now().toString(),
+            ),
         )
     }
 
-    override suspend fun updateStatus(sessionId: String, status: String): Result<Unit> = runCatching {
-        navigationApi.updateStatus(sessionId, UpdateStatusRequest(status))
+    override suspend fun updateStatus(sessionId: String, status: String, reason: String?): Result<Unit> = runCatching {
+        embeddedApi.updateSessionStatus(
+            navigationSessionId = sessionId,
+            request = UpdateNavigationSessionStatusRequest(
+                status    = status,
+                reason    = reason,
+                timestamp = Instant.now().toString(),
+            ),
+        )
     }
 }
